@@ -157,9 +157,34 @@ Each trip is described by a single JSON file.
       "lng": 34.1024,
       "label": "End — Simferopol"
     }
+  ],
+  "route": [
+    { "lat": 46.9651, "lng": 31.9966 },
+    { "lat": 46.9480, "lng": 31.9710 },
+    { "lat": 46.9120, "lng": 31.9230 },
+    { "lat": 46.8874, "lng": 31.8601 },
+    { "lat": 46.8503, "lng": 31.7842 },
+    { "lat": 46.7891, "lng": 31.5670 },
+    { "lat": 46.7200, "lng": 31.3210 },
+    { "lat": 46.6540, "lng": 31.1080 },
+    { "lat": 46.5630, "lng": 30.9140 },
+    { "lat": 46.4825, "lng": 30.7233 },
+    { "lat": 46.2310, "lng": 30.7980 },
+    { "lat": 45.9870, "lng": 30.9450 },
+    { "lat": 45.7200, "lng": 31.2100 },
+    { "lat": 45.4560, "lng": 31.5430 },
+    { "lat": 45.1980, "lng": 31.8760 },
+    { "lat": 44.9100, "lng": 32.6430 },
+    { "lat": 44.7230, "lng": 33.2870 },
+    { "lat": 44.6166, "lng": 33.5254 },
+    { "lat": 44.6780, "lng": 33.6890 },
+    { "lat": 44.7830, "lng": 33.8540 },
+    { "lat": 44.9521, "lng": 34.1024 }
   ]
 }
 ```
+
+> **`route` vs `waypoints`:** `waypoints` are the named stops the rider planned the trip around (start, intermediate stops, end). `route` is the dense sequence of GPS coordinates that traces the **actual road geometry** — every turn, curve, and intersection the rider followed. It is produced by a routing engine (e.g. OSRM, GraphHopper, Google Directions API) or exported from a GPS device/GPX file, and contains enough points to faithfully render the road path on the map without straight-line shortcuts through buildings or terrain.
 
 ### Manifest file (`data/trips/index.json`)
 
@@ -179,11 +204,14 @@ Each trip is described by a single JSON file.
 | `id` | string | yes | Unique identifier, matches filename |
 | `title` | string | yes | Human-readable trip name |
 | `date` | string (ISO 8601) | yes | Trip start date |
-| `waypoints` | array | yes | Ordered list of geographic points |
+| `waypoints` | array | yes | Named stops: start, intermediate points, end |
 | `waypoints[].lat` | number | yes | Latitude (WGS 84) |
 | `waypoints[].lng` | number | yes | Longitude (WGS 84) |
 | `waypoints[].label` | string | no | Point label shown on map hover |
 | `waypoints[].note` | string | no | Additional tooltip text |
+| `route` | array | no | Dense sequence of coordinates produced by a routing engine or GPS device, tracing the exact road geometry between waypoints (every turn and curve). Used to draw the polyline on the map. Falls back to straight lines between `waypoints` if omitted. |
+| `route[].lat` | number | yes (if route) | Latitude (WGS 84) |
+| `route[].lng` | number | yes (if route) | Longitude (WGS 84) |
 | `description` | string | no | Free-text trip description |
 | `distance_km` | number | no | Total distance in kilometres |
 | `duration_hours` | number | no | Total riding time |
@@ -221,7 +249,8 @@ Each trip is described by a single JSON file.
 4. For each trip in the manifest:
      a. fetch the individual trip JSON file
      b. validate required fields (id, title, date, waypoints)
-     c. convert waypoints → GeoJSON Feature (LineString + Points)
+     c. if `route` is present, use it as the polyline geometry; otherwise fall back to straight lines between `waypoints`
+     d. convert to GeoJSON Feature (LineString for the route + Points for waypoints)
         │
         ▼
 5. mapController.addTrip(geoJsonFeature):
@@ -278,8 +307,12 @@ mapWrapper.on('load', () => {
 ### Route rendering
 
 ```js
+// Use the dense road-following route if available, otherwise fall back
+// to straight lines between the named waypoints.
+const pathCoords = (trip.route ?? trip.waypoints).map(pt => ({ lat: pt.lat, lng: pt.lng }));
+
 const polyline = new google.maps.Polyline({
-  path: waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng })),
+  path: pathCoords,
   geodesic: true,
   strokeColor: trip.color ?? '#E55D2B',
   strokeOpacity: 1.0,
@@ -331,8 +364,10 @@ npx serve .
 ### Adding a new trip
 
 1. Create `data/trips/trip-NNN.json` following the data format above.
-2. Add the path to `data/trips/index.json`.
-3. Refresh the browser — the trip appears automatically.
+2. Populate `waypoints` with the named stops (start, intermediate, end).
+3. Populate `route` with the dense road-following coordinates exported from a GPS device, GPX file, or a routing engine (OSRM, GraphHopper, Google Directions API). Without `route` the map will draw straight lines between waypoints.
+4. Add the path to `data/trips/index.json`.
+5. Refresh the browser — the trip appears automatically.
 
 ### Linting & formatting (optional, recommended)
 
