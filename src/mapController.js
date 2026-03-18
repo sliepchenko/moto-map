@@ -278,6 +278,7 @@ export async function initMap(apiKey) {
   google.maps.event.addListenerOnce(map, 'idle', async () => {
     try {
       const trips = await loadTrips();
+      trips.sort((a, b) => new Date(a.date) - new Date(b.date));
       assignTripColors(trips);
       trips.forEach(trip => renderTrip(map, trip));
       if (trips.length > 0) {
