@@ -3,6 +3,20 @@ const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
 const DEFAULT_ZOOM = 12;
 
 /**
+ * Maps a POI type string to the corresponding icon URL in assets/icons/.
+ * Falls back to a generic circle marker for unknown types.
+ * @param {string} type - one of 'fuel' | 'hotel' | 'cafe' | 'mechanic'
+ * @returns {string} relative URL to the SVG icon
+ */
+const POI_ICON_MAP = {
+  fuel:     'assets/icons/fuel.svg',
+  hotel:    'assets/icons/hotel.svg',
+  cafe:     'assets/icons/cafe.svg',
+  mechanic: 'assets/icons/mechanic.svg',
+  water:     'assets/icons/water.svg',
+};
+
+/**
  * Returns the great-circle distance in kilometres between two lat/lng points
  * using the Haversine formula.
  * @param {{ lat: number, lng: number }} a
@@ -207,8 +221,10 @@ function renderTrip(map, trip) {
     }
   })();
 
-  // Draw waypoint markers
+  // Draw waypoint markers — hidden by default, shown only when isVisible: true
   waypoints.forEach((wp, i) => {
+    if (!wp.isVisible) return;
+
     const isStart = i === 0;
     const isEnd = i === waypoints.length - 1;
 
@@ -229,6 +245,48 @@ function renderTrip(map, trip) {
     if (wp.label || wp.note) {
       const infoWindow = new google.maps.InfoWindow({
         content: `<strong>${wp.label ?? ''}</strong>${wp.note ? `<br>${wp.note}` : ''}`,
+      });
+      marker.addListener('click', () => infoWindow.open(map, marker));
+    }
+  });
+}
+
+/**
+ * Renders POI markers for a single trip. Each POI uses a custom SVG icon
+ * loaded from assets/icons/ and opens an InfoWindow on click.
+ * @param {google.maps.Map} map
+ * @param {Object} trip - trip data object (may have a `poi` array)
+ */
+function renderPois(map, trip) {
+  if (!Array.isArray(trip.poi) || trip.poi.length === 0) return;
+
+  trip.poi.forEach((poi) => {
+    const iconUrl = POI_ICON_MAP[poi.type] ?? null;
+
+    const markerOptions = {
+      position: { lat: poi.lat, lng: poi.lng },
+      map,
+      title: poi.title ?? poi.type,
+    };
+
+    if (iconUrl) {
+      markerOptions.icon = {
+        url: iconUrl,
+        scaledSize: new google.maps.Size(32, 32),
+        anchor: new google.maps.Point(16, 16),
+      };
+    }
+
+    const marker = new google.maps.Marker(markerOptions);
+
+    const contentParts = [];
+    if (poi.title)       contentParts.push(`<strong>${poi.title}</strong>`);
+    if (poi.description) contentParts.push(poi.description);
+    if (poi.address)     contentParts.push(`<a href="https://maps.google.com/?q=${encodeURIComponent(poi.address)}" target="_blank" rel="noopener noreferrer">${poi.address}</a>`);
+
+    if (contentParts.length > 0) {
+      const infoWindow = new google.maps.InfoWindow({
+        content: contentParts.join('<br>'),
       });
       marker.addListener('click', () => infoWindow.open(map, marker));
     }
@@ -280,7 +338,10 @@ export async function initMap(apiKey) {
       const trips = await loadTrips();
       trips.sort((a, b) => new Date(a.date) - new Date(b.date));
       assignTripColors(trips);
-      trips.forEach(trip => renderTrip(map, trip));
+      trips.forEach(trip => {
+        renderTrip(map, trip);
+        renderPois(map, trip);
+      });
       if (trips.length > 0) {
         fitMapToTrips(map, trips);
       }

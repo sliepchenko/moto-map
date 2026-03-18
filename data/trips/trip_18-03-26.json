@@ -3,11 +3,28 @@
   "title": "Ride to Čiče lake",
   "date": "2026-03-15",
   "waypoints": [
-    { "lat": 45.81314454115758, "lng": 15.956034141568503, "label": "Start" },
+    { "lat": 45.81314454115758, "lng": 15.956034141568503, "isVisible": true },
     { "lat": 45.77868274070285, "lng": 16.053491171854315 },
     { "lat": 45.707897027360616, "lng": 16.09950715726359 },
     { "lat": 45.69907455168154, "lng": 16.073625052939228 },
     { "lat": 45.729055357237776, "lng": 16.029428898203058 },
-    { "lat": 45.81314454115758, "lng": 15.956034141568503, "label": "End" }
+    { "lat": 45.81314454115758, "lng": 15.956034141568503 }
+  ],
+  "poi": [
+    {
+      "type": "cafe",
+      "lat": 45.69919231214668,
+      "lng": 16.07357256518775,
+      "title": "Coffee Stop",
+      "address": "Ul. Stjepana Fabijančića Jape 116, 10410, Velika Gorica",
+      "description": "Nice cafe, but they are accepting only cash!"
+    },
+    {
+      "type": "water",
+      "lat": 45.707897027360616,
+      "lng": 16.09950715726359,
+      "title": "Čiče lake",
+      "description": "Nice calm place, pretty nice for brake"
+    }
   ]
 }
