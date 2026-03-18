@@ -1,6 +1,6 @@
 # Moto Map — Motorcycle Trip Tracker
 
-A static website that visualizes motorcycle trips on an interactive map powered by **Mapbox GL JS**. Trip data is stored as plain JSON files, making it easy to add new trips without any backend or build pipeline changes.
+A static website that visualizes motorcycle trips on an interactive map powered by **Google Maps JavaScript API**. Trip data is stored as plain JSON files, making it easy to add new trips without any backend or build pipeline changes.
 
 ---
 
@@ -23,7 +23,7 @@ A static website that visualizes motorcycle trips on an interactive map powered 
 
 ## Project Overview
 
-The site is a **personal portfolio of motorcycle trips**. Each trip is described by a JSON file that contains an ordered list of geographic waypoints (start point, optional intermediate points, end point). The application fetches those files at runtime, converts the waypoints into a GeoJSON `LineString`, and draws the route on a full-screen Mapbox map.
+The site is a **personal portfolio of motorcycle trips**. Each trip is described by a JSON file that contains an ordered list of geographic waypoints (start point, optional intermediate points, end point). The application fetches those files at runtime, converts the waypoints into a GeoJSON `LineString`, and draws the route on a full-screen Google Map.
 
 There is no server, no database, and no authentication. The entire application is a collection of static files that can be hosted for free on GitHub Pages, Netlify, Vercel, or any CDN.
 
@@ -60,8 +60,8 @@ There is no server, no database, and no authentication. The entire application i
 │              ▼                ▼              ▼   │
 │       ┌────────────┐  ┌──────────────┐  ┌──────┐ │
 │       │ tripLoader │  │ mapController│  │ UI   │ │
-│       │  (fetch    │  │ (Mapbox GL JS│  │(side-│ │
-│       │  JSON      │  │  layer mgmt) │  │panel)│ │
+│       │  (fetch    │  │ (Google Maps │  │(side-│ │
+│       │  JSON      │  │  JS API)     │  │panel)│ │
 │       │  files)    │  └──────────────┘  └──────┘ │
 │       └─────┬──────┘                             │
 │             │                                    │
@@ -199,8 +199,8 @@ Each trip is described by a single JSON file.
 | Markup | HTML5 | No framework needed for a static page |
 | Styles | Vanilla CSS (custom properties) | Minimal footprint, no build step required |
 | Logic | Vanilla JavaScript (ES Modules) | No bundler required for initial version |
-| Mapping | **Mapbox GL JS v3** | Best-in-class vector tile rendering, rich SDK |
-| Map tiles | Mapbox Streets / Outdoors | Outdoor style suits motorcycle routes |
+| Mapping | **Google Maps JavaScript API** | Widely supported, reliable, rich SDK |
+| Map tiles | Google Maps Terrain / Roadmap | Terrain style suits motorcycle routes |
 | Hosting | GitHub Pages (initial) | Free, CI/CD via `git push` |
 | Future bundler | Vite | Zero-config, fast HMR if the project grows |
 
@@ -212,7 +212,7 @@ Each trip is described by a single JSON file.
 1. Browser loads index.html
         │
         ▼
-2. main.js initialises the Mapbox map (mapController.js)
+2. main.js dynamically loads Google Maps JS API, then calls initMap (mapController.js)
         │
         ▼
 3. tripLoader.js fetches data/trips/index.json (manifest)
@@ -225,9 +225,8 @@ Each trip is described by a single JSON file.
         │
         ▼
 5. mapController.addTrip(geoJsonFeature):
-     a. addSource(id, geojson)
-     b. addLayer — LineString (route line)
-     c. addLayer — Points (waypoint markers)
+     a. new google.maps.Polyline (route line)
+     b. new google.maps.Marker (waypoint markers)
         │
         ▼
 6. tripPanel.js renders the trip list in the sidebar
@@ -245,50 +244,47 @@ Each trip is described by a single JSON file.
 - Clicking a trip **flies the camera** to fit the route in view.
 - Active trip route is **highlighted** (thicker line, brighter colour).
 - Waypoints are shown as **small circle markers**; start and end use distinct icons.
-- On hover/click, a **popup** shows the waypoint label and note.
+- On hover/click, a **popup** (Google Maps `InfoWindow`) shows the waypoint label and note.
 - The UI is **responsive**: on small screens the sidebar becomes a bottom sheet.
-- **Dark / light map style** toggle (Mapbox Outdoors vs. Mapbox Dark).
+- **Map type toggle** (Terrain vs. Roadmap).
 
 ---
 
-## Mapbox Integration
+## Google Maps Integration
 
 ### Setup
 
-1. Create a free account at [mapbox.com](https://www.mapbox.com).
-2. Copy your **public access token** from the Mapbox dashboard.
-3. Store the token in a top-level `config.js` file (gitignored) or as an environment variable injected at build time. **Never commit the token in a public repository.**
+1. Obtain an API key from the [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable the **Maps JavaScript API** for your project.
+3. Store the key in a top-level `config.js` file (gitignored) or as an environment variable injected at build time. **Never commit the key in a public repository.**
 
 ```js
 // config.js  (gitignored)
-export const MAPBOX_TOKEN = 'pk.eyJ1IjoiZXhhbXBsZSIs...';
+export const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY_HERE';
 ```
 
 ### Map initialisation
 
 ```js
-mapboxgl.accessToken = MAPBOX_TOKEN;
+import { initMap } from './src/mapController.js';
 
-const map = new mapboxgl.Map({
-  container: 'map',
-  style: 'mapbox://styles/mapbox/outdoors-v12',
-  center: [31.0, 49.0],   // initial centre (Ukraine)
-  zoom: 5,
+const mapWrapper = await initMap(GOOGLE_MAPS_API_KEY);
+
+mapWrapper.on('load', () => {
+  console.log('Map ready');
 });
 ```
 
-### Route layer
+### Route rendering
 
 ```js
-map.addLayer({
-  id: `route-${trip.id}`,
-  type: 'line',
-  source: trip.id,
-  layout: { 'line-join': 'round', 'line-cap': 'round' },
-  paint: {
-    'line-color': trip.color ?? '#E55D2B',
-    'line-width': 3,
-  },
+const polyline = new google.maps.Polyline({
+  path: waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng })),
+  geodesic: true,
+  strokeColor: trip.color ?? '#E55D2B',
+  strokeOpacity: 1.0,
+  strokeWeight: 3,
+  map,
 });
 ```
 
@@ -307,11 +303,11 @@ map.addLayer({
 - Connect repository, set **publish directory** to `/` (no build command required).
 - Both platforms support custom domains and automatic HTTPS.
 
-### Important: Mapbox token on a public site
+### Important: Google Maps API key on a public site
 
-The Mapbox token will be visible in client-side code. Mitigate this by:
-- **Restricting the token** in the Mapbox dashboard to your domain only.
-- Rotating the token if it is ever exposed or abused.
+The API key will be visible in client-side code. Mitigate this by:
+- **Restricting the key** in the Google Cloud Console to your domain(s) only (HTTP referrer restrictions).
+- Rotating the key if it is ever exposed or abused.
 
 ---
 
@@ -355,11 +351,11 @@ The following features are planned for future iterations, in rough priority orde
 2. **Photo gallery per trip** — lightbox of trip photos linked from the JSON file.
 3. **Elevation profile chart** — SVG/Canvas chart drawn below or beside the map.
 4. **Trip search & filtering** — filter by tag, date range, or distance.
-5. **Vite bundler** — add a build step for asset hashing, CSS bundling, and environment variable management (Mapbox token via `.env`).
+5. **Vite bundler** — add a build step for asset hashing, CSS bundling, and environment variable management (Google Maps API key via `.env`).
 6. **GPX / KML import** — parse GPX files from a GPS device and auto-generate trip JSON.
 7. **Offline support** — service worker to cache tiles and trip data for offline viewing.
 8. **Animated route drawing** — draw the route progressively on the map for a storytelling effect.
-9. **Custom map style** — design a bespoke Mapbox Studio style optimised for road routes.
+9. **Custom map style** — design a bespoke Google Maps style via the Cloud Console styling wizard optimised for road routes.
 10. **Multi-language support** — i18n for trip descriptions.
 
 ---
