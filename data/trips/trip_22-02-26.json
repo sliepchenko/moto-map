@@ -1,8 +1,7 @@
 {
-  "id": "trip_22-02-26_blue",
-  "title": "Blue Route",
+  "id": "trip_22-02-26",
+  "title": "Ride to Zagorje",
   "date": "2026-02-22",
-  "color": "#0000FF",
   "waypoints": [
     { "lat": 45.81314454115758, "lng": 15.956034141568503, "label": "Start" },
     { "lat": 45.92328697380453, "lng": 15.97349451999407 },

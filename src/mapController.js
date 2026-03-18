@@ -3,29 +3,108 @@ const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
 const DEFAULT_ZOOM = 12;
 
 /**
- * Custom map theme from example.json.
- * A light, minimal style that reduces visual noise and keeps trip routes prominent.
+ * Returns the great-circle distance in kilometres between two lat/lng points
+ * using the Haversine formula.
+ * @param {{ lat: number, lng: number }} a
+ * @param {{ lat: number, lng: number }} b
+ * @returns {number} distance in km
  */
-const MAP_STYLES = [
-  { featureType: 'all', elementType: 'geometry.fill', stylers: [{ weight: '2.00' }] },
-  { featureType: 'all', elementType: 'geometry.stroke', stylers: [{ color: '#9c9c9c' }] },
-  { featureType: 'all', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
-  { featureType: 'landscape', elementType: 'all', stylers: [{ color: '#f2f2f2' }] },
-  { featureType: 'landscape', elementType: 'geometry.fill', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'landscape.man_made', elementType: 'geometry.fill', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'poi', elementType: 'all', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'all', stylers: [{ saturation: -100 }, { lightness: 45 }] },
-  { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#eeeeee' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7b7b7b' }] },
-  { featureType: 'road', elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road.highway', elementType: 'all', stylers: [{ visibility: 'simplified' }] },
-  { featureType: 'road.arterial', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', elementType: 'all', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'all', stylers: [{ color: '#46bcec' }, { visibility: 'on' }] },
-  { featureType: 'water', elementType: 'geometry.fill', stylers: [{ color: '#c8d7d4' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#070707' }] },
-  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
-];
+function haversineKm(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h = sinDLat * sinDLat +
+    Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+    sinDLng * sinDLng;
+  return R * 2 * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * Estimates the total route length of a trip by summing Haversine distances
+ * between consecutive points. Uses `route` if present, otherwise `waypoints`.
+ * @param {Object} trip
+ * @returns {number} estimated distance in km
+ */
+function estimateTripDistance(trip) {
+  const pts = trip.route ?? trip.waypoints;
+  let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    total += haversineKm(pts[i], pts[i + 1]);
+  }
+  return total;
+}
+
+/**
+ * Interpolates a CSS hex colour across three stops based on trip age:
+ *   t = 0.0 (oldest)  → gray-green  #6b7c6e  rgb(107, 124, 110)
+ *   t = 0.5 (mid-age) → dark green  #166534  rgb( 22, 101,  52)
+ *   t = 1.0 (newest)  → bright green #22c55e  rgb( 34, 197,  94)
+ * @param {number} t - normalised position [0, 1]
+ * @returns {string} hex colour string, e.g. '#3a8f5c'
+ */
+function lerpColor(t) {
+  // Three colour stops
+  const stops = [
+    { r: 107, g: 124, b: 110 }, // gray-green  (#6b7c6e) — oldest
+    { r:  22, g: 101, b:  52 }, // dark green  (#166534) — middle age
+    { r:  34, g: 197, b:  94 }, // bright green (#22c55e) — newest
+  ];
+
+  // Map t into a segment index and local position within that segment
+  const segments = stops.length - 1;          // 2 segments
+  const scaled   = Math.min(t * segments, segments - 1e-10);
+  const idx      = Math.floor(scaled);         // 0 or 1
+  const u        = scaled - idx;               // local [0, 1)
+
+  const a = stops[idx];
+  const b = stops[idx + 1];
+
+  const r = Math.round(a.r + (b.r - a.r) * u);
+  const g = Math.round(a.g + (b.g - a.g) * u);
+  const bv = Math.round(a.b + (b.b - a.b) * u);
+  return '#' + [r, g, bv].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Given an array of trips, assigns a `_color` property to each based on its
+ * date using a three-stop gradient:
+ *   oldest  → gray-green  (#6b7c6e)
+ *   middle  → dark green  (#166534)
+ *   newest  → bright green (#22c55e)
+ * If a trip already has a `color` field it is left unchanged.
+ * @param {Array} trips
+ */
+function assignTripColors(trips) {
+  const timestamps = trips.map(trip => new Date(trip.date).getTime());
+  const min = Math.min(...timestamps);
+  const max = Math.max(...timestamps);
+  const range = max - min;
+
+  trips.forEach((trip, i) => {
+    if (trip.color) {
+      // Author-specified colour takes precedence
+      trip._color = trip.color;
+    } else {
+      const t = range === 0 ? 0 : (timestamps[i] - min) / range;
+      trip._color = lerpColor(t);
+    }
+  });
+}
+
+/**
+ * Loads the Google Maps styling configuration from theme.json at the project root.
+ * @returns {Promise<Array>} - Google Maps MapTypeStyle array
+ */
+async function loadMapTheme() {
+  const resp = await fetch('theme.json');
+  if (!resp.ok) {
+    console.warn(`Failed to load theme.json (${resp.status}). Map will use default styling.`);
+    return [];
+  }
+  return resp.json();
+}
 
 /**
  * Dynamically loads the Google Maps JavaScript API script.
@@ -75,7 +154,9 @@ async function loadTrips() {
  * @param {Object} trip - trip data object
  */
 function renderTrip(map, trip) {
-  const color = trip.color ?? '#E55D2B';
+  // _color is set by assignTripColors() before rendering; fall back to the
+  // legacy static orange only if somehow called before colour assignment.
+  const color = trip._color ?? trip.color ?? '#E55D2B';
   const waypoints = trip.waypoints;
 
   // Initialise the polyline that will accumulate road geometry
@@ -138,7 +219,7 @@ function renderTrip(map, trip) {
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
         scale: isStart || isEnd ? 8 : 5,
-        fillColor: isStart ? '#22c55e' : isEnd ? '#ef4444' : color,
+        fillColor: isStart ? '#166534' : isEnd ? '#166534' : color,
         fillOpacity: 1,
         strokeColor: '#ffffff',
         strokeWeight: 2,
@@ -177,12 +258,16 @@ function fitMapToTrips(map, trips) {
  * @returns {Promise<{ map: google.maps.Map, on: Function }>}
  */
 export async function initMap(apiKey) {
-  await loadGoogleMapsScript(apiKey);
+  const [, mapStyles] = await Promise.all([
+    loadGoogleMapsScript(apiKey),
+    loadMapTheme(),
+  ]);
 
   const map = new google.maps.Map(document.getElementById('map'), {
     center: ZAGREB_CENTER,
     zoom: DEFAULT_ZOOM,
     mapTypeId: google.maps.MapTypeId.TERRAIN,
+    styles: mapStyles,
     zoomControl: true,
     mapTypeControl: true,
     streetViewControl: false,
@@ -193,6 +278,7 @@ export async function initMap(apiKey) {
   google.maps.event.addListenerOnce(map, 'idle', async () => {
     try {
       const trips = await loadTrips();
+      assignTripColors(trips);
       trips.forEach(trip => renderTrip(map, trip));
       if (trips.length > 0) {
         fitMapToTrips(map, trips);

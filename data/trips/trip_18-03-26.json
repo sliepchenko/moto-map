@@ -1,8 +1,7 @@
 {
-  "id": "trip_15-03-26_purple",
-  "title": "Purple Route",
+  "id": "trip_15-03-26",
+  "title": "Ride to Čiče lake",
   "date": "2026-03-15",
-  "color": "#800080",
   "waypoints": [
     { "lat": 45.81314454115758, "lng": 15.956034141568503, "label": "Start" },
     { "lat": 45.77868274070285, "lng": 16.053491171854315 },
