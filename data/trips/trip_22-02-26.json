@@ -15,6 +15,21 @@
       "lng": 15.94818563731715,
       "title": "Coffee Stop",
       "description": "Good option to take a break before go to Zagorje"
+    },
+    {
+      "type": "cafe",
+      "lat": 45.949504671275186,
+      "lng": 15.850051670783373,
+      "title": "coffee stop",
+      "description": "Just a coffee stop, nothing special",
+      "address": "Stubička 4c, 10297, Jakovlje"
+    },
+    {
+      "type": "viewpoint",
+      "lat": 45.890193504135645,
+      "lng": 15.956643804511462,
+      "title": "Viewpoint",
+      "description": "You can rest here, if you have some food or a coffee, take a chance and rest"
     }
   ]
 }

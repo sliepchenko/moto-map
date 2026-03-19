@@ -5,15 +5,16 @@ const DEFAULT_ZOOM = 12;
 /**
  * Maps a POI type string to the corresponding icon URL in assets/icons/.
  * Falls back to a generic circle marker for unknown types.
- * @param {string} type - one of 'fuel' | 'hotel' | 'cafe' | 'mechanic'
+ * @param {string} type - one of 'fuel' | 'hotel' | 'cafe' | 'mechanic' | 'water' | 'viewpoint'
  * @returns {string} relative URL to the SVG icon
  */
 const POI_ICON_MAP = {
-  fuel:     'assets/icons/fuel.svg',
-  hotel:    'assets/icons/hotel.svg',
-  cafe:     'assets/icons/cafe.svg',
-  mechanic: 'assets/icons/mechanic.svg',
+  fuel:      'assets/icons/fuel.svg',
+  hotel:     'assets/icons/hotel.svg',
+  cafe:      'assets/icons/cafe.svg',
+  mechanic:  'assets/icons/mechanic.svg',
   water:     'assets/icons/water.svg',
+  viewpoint: 'assets/icons/viewpoint.svg',
 };
 
 /**
@@ -280,9 +281,15 @@ function renderPois(map, trip) {
     const marker = new google.maps.Marker(markerOptions);
 
     const contentParts = [];
-    if (poi.title)       contentParts.push(`<strong>${poi.title}</strong>`);
-    if (poi.description) contentParts.push(poi.description);
-    if (poi.address)     contentParts.push(`<a href="https://maps.google.com/?q=${encodeURIComponent(poi.address)}" target="_blank" rel="noopener noreferrer">${poi.address}</a>`);
+    if (poi.title) contentParts.push(`<strong>${poi.title}</strong>`);
+
+    const mapsQuery = poi.address
+      ? encodeURIComponent(poi.address)
+      : `${poi.lat},${poi.lng}`;
+    const mapsLink = `<a href="https://maps.google.com/?q=${mapsQuery}" target="_blank" rel="noopener noreferrer">🔗</a>`;
+
+    if (poi.description) contentParts.push(`${poi.description} ${mapsLink}`);
+    else                 contentParts.push(mapsLink);
 
     if (contentParts.length > 0) {
       const infoWindow = new google.maps.InfoWindow({
