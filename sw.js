@@ -8,7 +8,7 @@
  *  - Everything else      → Network-first with cache fallback
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE  = `moto-map-static-${CACHE_VERSION}`;
 const DATA_CACHE    = `moto-map-data-${CACHE_VERSION}`;
 
@@ -31,6 +31,7 @@ const STATIC_ASSETS = [
   '/src/components/AppSidebarComponent.js',
   '/src/components/TripListComponent.js',
   '/src/components/PoiListComponent.js',
+  '/src/components/TripStatsPanel.js',
   '/src/core/EventEmitter.js',
   '/src/core/ColorUtils.js',
   '/src/core/GeoUtils.js',
