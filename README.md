@@ -1,82 +1,137 @@
 # Moto Map — Motorcycle Trip Tracker
 
-A static website that visualizes motorcycle trips on an interactive map powered by **Google Maps JavaScript API**. Trip data is stored as plain JSON files, making it easy to add new trips without any backend or build pipeline changes.
+A fully static website that visualizes personal motorcycle trips on an interactive Google Maps map. Trip data and Points of Interest are stored as plain JSON files — no backend, no database, no build pipeline.
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Goals & Non-Goals](#goals--non-goals)
-3. [Architecture](#architecture)
-4. [Directory Structure](#directory-structure)
-5. [Data Format (Trip JSON)](#data-format-trip-json)
-6. [Technology Stack](#technology-stack)
-7. [Rendering Pipeline](#rendering-pipeline)
-8. [UI / UX Design Decisions](#ui--ux-design-decisions)
-9. [Mapbox Integration](#mapbox-integration)
+1. [Project Status](#project-status)
+2. [Project Overview](#project-overview)
+3. [Features](#features)
+4. [Architecture](#architecture)
+5. [Directory Structure](#directory-structure)
+6. [Code Guide — OOP, SOLID & Web Components](#code-guide--oop-solid--web-components)
+7. [Data Format](#data-format)
+8. [Technology Stack](#technology-stack)
+9. [Development Workflow](#development-workflow)
 10. [Static Hosting](#static-hosting)
-11. [Development Workflow](#development-workflow)
-12. [Future Enhancements](#future-enhancements)
+11. [Future Enhancements](#future-enhancements)
+
+---
+
+## Project Status
+
+**Current phase: OOP / SOLID / WebComponents refactor — complete.**
+
+The codebase was fully rewritten from a flat-function style to a class-based, SOLID-documented, Web Component-driven architecture. All features below are implemented and working.
+
+| Area | Status |
+|---|---|
+| Google Maps integration (Terrain + custom style) | Done |
+| Road-following trip polylines via Directions API | Done |
+| Automatic trip color gradient by date | Done |
+| Waypoint markers with InfoWindows | Done |
+| Points of Interest with custom SVG icons | Done |
+| Collapsible sidebar with accordion sections | Done |
+| Trip selection, highlight, deselect | Done |
+| Deep linking via `?trip=` / `?poi=` URL params | Done |
+| Browser back/forward navigation | Done |
+| Responsive bottom-sheet layout (mobile) | Done |
 
 ---
 
 ## Project Overview
 
-The site is a **personal portfolio of motorcycle trips**. Each trip is described by a JSON file that contains an ordered list of geographic waypoints (start point, optional intermediate points, end point). The application fetches those files at runtime, converts the waypoints into a GeoJSON `LineString`, and draws the route on a full-screen Google Map.
+**Moto Map** is a personal portfolio of motorcycle trips. Each trip is a JSON file with an ordered list of geographic waypoints. At runtime the app fetches those files, calls the Google Maps Directions API to resolve road-following routes between waypoints, and draws the result on a full-screen map.
 
-There is no server, no database, and no authentication. The entire application is a collection of static files that can be hosted for free on GitHub Pages, Netlify, Vercel, or any CDN.
+Points of Interest (cafes, fuel stations, viewpoints, water spots) are loaded from a separate `pois.json` file and rendered with custom SVG icons.
+
+There is no server, no database, and no authentication. The entire application is a collection of static files hostable for free on GitHub Pages, Netlify, or any CDN.
 
 ---
 
-## Goals & Non-Goals
+## Features
 
-### Goals
-- Display one or more motorcycle trips as routes on an interactive map.
-- Allow easy addition of new trips by dropping a JSON file into a folder.
-- Provide a clean, minimal UI that keeps the map as the primary focus.
-- Work entirely as a static site — zero server-side code.
-- Be easily extensible (trip details panel, photos, statistics, etc.).
+### Map
 
-### Non-Goals
-- Real-time GPS tracking.
-- User accounts or trip sharing with authentication.
-- Server-side rendering or a CMS backend.
-- Mobile native app (responsive web is sufficient).
+- Full-screen Google Maps with **TERRAIN** map type and a custom grayscale style (`theme.json`) — desaturated roads, blue water, business and transit icons hidden for clarity.
+- Default center: **Zagreb, Croatia** (45.8150, 15.9819), zoom 12.
+- Map controls: zoom, map type toggle, fullscreen. Street view is disabled.
+- `fitBounds()` auto-zoom: on initial load the viewport fits all trips; selecting a trip zooms to that trip's waypoints.
+
+### Trip Rendering
+
+- Each trip's route is drawn as a **road-following polyline** using the Google Maps **DirectionsService** API. The renderer calls a separate route request per consecutive waypoint pair, assembles the `overview_path` points into an `MVCArray`, and falls back to a straight line if the API fails.
+- Trip colors are **auto-assigned** by date using a 3-stop gradient: gray-green (oldest) → dark green (middle) → bright green `#22c55e` (newest). A `color` field in the trip JSON overrides the gradient.
+- Waypoints with `isVisible: true` are rendered as circle markers: endpoints are larger (scale 8, dark green), intermediate visible stops are smaller (scale 5, trip color). Waypoints with a `label` or `note` show a `google.maps.InfoWindow` on click.
+- Selecting a trip makes its polyline bold (`strokeWeight: 6`); all others fade (`strokeOpacity: 0.25`). Clicking an already-active trip deselects it and restores full opacity for all trips.
+
+### Points of Interest (POI)
+
+- POIs are loaded from `data/pois.json`, independent of trips.
+- 6 supported POI types: `fuel`, `hotel`, `cafe`, `mechanic`, `water`, `viewpoint` — each with a dedicated SVG icon in `assets/icons/`.
+- Each POI marker opens an `InfoWindow` on click showing title, description, and a deep-link to Google Maps.
+- `openPoi(index)` pans the map to the POI, sets zoom to 15, and programmatically opens its InfoWindow.
+
+### Sidebar UI
+
+- Semi-transparent dark sidebar with backdrop blur, 260px wide, hidden on load and revealed after data is ready.
+- Two **accordion sections**: "My Rides" (open by default) and "My POI".
+- Accordion toggle: clicking an open section closes it; clicking a closed section opens it and closes all others.
+- Trip list items show the trip title and formatted date. The active trip gets a green left border.
+- POI list items show an emoji icon, title, and truncated description. The active POI is highlighted similarly.
+- Clicking a trip or POI fires a `CustomEvent` that bubbles to `App`.
+
+### URL State / Deep Linking
+
+- `?trip=<id>` — selecting a trip updates the URL; the bookmarked URL restores the selected trip on load.
+- `?poi=<index>` — same for POIs (zero-based index).
+- Browser back/forward (`popstate`) is fully handled: map and sidebar both update to match the navigated state.
+- Trip and POI params are mutually exclusive (setting one clears the other).
+
+### Responsive Design
+
+- On screens ≤ 600px the sidebar becomes a **bottom sheet** (full width, max-height 320px, anchored to bottom).
+- Trip list switches to a horizontal scroll row of cards.
+- POI list switches to a horizontal scroll row; group titles and descriptions are hidden (only icon + title visible).
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────┐
-│                   Browser                        │
-│                                                  │
-│  ┌────────────┐    ┌──────────────────────────┐  │
-│  │  index.html│───▶│  main.js (app entrypoint)│  │
-│  └────────────┘    └──────────┬───────────────┘  │
-│                               │                  │
-│              ┌────────────────┼──────────────┐   │
-│              ▼                ▼              ▼   │
-│       ┌────────────┐  ┌──────────────┐  ┌──────┐ │
-│       │ tripLoader │  │ mapController│  │ UI   │ │
-│       │  (fetch    │  │ (Google Maps │  │(side-│ │
-│       │  JSON      │  │  JS API)     │  │panel)│ │
-│       │  files)    │  └──────────────┘  └──────┘ │
-│       └─────┬──────┘                             │
-│             │                                    │
-│             ▼                                    │
-│       ┌──────────────────────┐                   │
-│       │  /data/trips/        │                   │
-│       │    index.json        │                   │
-│       │    trip-001.json     │                   │
-│       │    trip-002.json     │                   │
-│       │    ...               │                   │
-│       └──────────────────────┘                   │
-└──────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                            Browser                               │
+│                                                                  │
+│  index.html                                                      │
+│     └── <app-sidebar>  ◄── WebComponent (UI layer)              │
+│     └── <div id="map"> ◄── Map container                        │
+│                                                                  │
+│  main.js  (App — thin orchestrator)                             │
+│     ├── MapController     ◄── extends EventEmitter              │
+│     │    ├── MapLoader        (loads API + theme.json)          │
+│     │    ├── TripRepository   (fetches trip JSON files)         │
+│     │    ├── PoiRepository    (fetches pois.json)               │
+│     │    ├── TripRenderer     (draws polylines + markers)       │
+│     │    └── PoiRenderer      (draws POI markers)               │
+│     ├── AppSidebarComponent  ◄── <app-sidebar> WebComponent     │
+│     │    ├── TripListComponent  ◄── <trip-list> WebComponent    │
+│     │    └── PoiListComponent   ◄── <poi-list> WebComponent     │
+│     └── UrlStateManager    ◄── reads/writes ?trip= / ?poi=      │
+│                                                                  │
+│  data/                                                           │
+│     ├── trips/index.json   (manifest)                           │
+│     ├── trips/trip_*.json  (individual trips)                   │
+│     └── pois.json          (Points of Interest)                 │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Key design choice:** A top-level `data/trips/index.json` acts as a manifest — it lists all available trip files. The app fetches the manifest first, then lazily loads individual trip files as needed. This avoids hardcoding trip filenames anywhere in JavaScript.
+**Key design choices:**
+
+- `data/trips/index.json` is a manifest — it lists all trip files. No trip filenames are hardcoded in JavaScript.
+- `MapController` accepts `TripRepository` and `PoiRepository` as constructor arguments (dependency injection with sensible defaults), making them swappable without modifying the controller.
+- WebComponents communicate upward via `CustomEvent` with `bubbles: true, composed: true`. `MapController` communicates outward via its `EventEmitter` base. No shared global state.
 
 ---
 
@@ -84,120 +139,225 @@ There is no server, no database, and no authentication. The entire application i
 
 ```
 moto-map/
-├── index.html              # Single HTML shell
-├── style.css               # Global styles
-├── main.js                 # Application entry point
-├── src/
-│   ├── tripLoader.js       # Fetches & validates trip JSON files
-│   ├── mapController.js    # Mapbox map init, layer & source management
-│   ├── tripPanel.js        # Sidebar / trip list UI component
-│   └── utils.js            # GeoJSON helpers, distance calculation, etc.
-├── data/
-│   └── trips/
-│       ├── index.json      # Manifest: list of all trip file paths
-│       ├── trip-001.json   # Individual trip data files
-│       └── trip-002.json
+├── index.html                      # Minimal HTML shell (17 lines)
+├── main.js                         # App entry point / orchestrator
+├── style.css                       # Global CSS: sidebar, accordion, responsive
+├── theme.json                      # Google Maps custom style (grayscale + blue water)
+├── README.md
+├── ROADMAP.MD
 ├── assets/
-│   └── icons/              # Custom map marker icons (PNG/SVG)
-└── README.md
+│   └── icons/                      # SVG marker icons (cafe, fuel, hotel, mechanic, viewpoint, water)
+├── data/
+│   ├── pois.json                   # Points of Interest
+│   └── trips/
+│       ├── index.json              # Trip manifest
+│       ├── trip_22-02-26.json      # "Ride to Zagorje"
+│       └── trip_18-03-26.json      # "Ride to Čiče lake"
+└── src/
+    ├── components/
+    │   ├── AppSidebarComponent.js  # <app-sidebar> WebComponent
+    │   ├── TripListComponent.js    # <trip-list> WebComponent
+    │   └── PoiListComponent.js     # <poi-list> WebComponent
+    ├── core/
+    │   ├── EventEmitter.js         # Reusable pub/sub base class
+    │   ├── ColorUtils.js           # Trip color gradient utilities
+    │   └── GeoUtils.js             # Haversine distance math (prepared, not yet wired)
+    ├── data/
+    │   ├── TripRepository.js       # Fetches trips from JSON files
+    │   └── PoiRepository.js        # Fetches POIs from pois.json
+    ├── map/
+    │   ├── MapController.js        # Central map orchestrator (extends EventEmitter)
+    │   ├── MapLoader.js            # Loads Google Maps API script + theme.json
+    │   ├── TripRenderer.js         # Draws trip polylines + waypoint markers
+    │   └── PoiRenderer.js          # Draws POI markers with InfoWindows
+    └── state/
+        └── UrlStateManager.js      # Manages ?trip= and ?poi= URL params
 ```
 
 ---
 
-## Data Format (Trip JSON)
+## Code Guide — OOP, SOLID & Web Components
 
-Each trip is described by a single JSON file.
+This section explains the architectural principles applied throughout the codebase and shows where to find concrete examples.
 
-### Minimal example
+### Object-Oriented Programming
+
+Every meaningful unit of logic is a class with a clear single responsibility. Private fields use the native ES2022 `#` syntax to enforce encapsulation. Public APIs are minimal and explicit.
+
+```
+src/core/EventEmitter.js        — reusable base class; subclassed by MapController
+src/map/MapController.js        — extends EventEmitter, owns map state
+src/data/TripRepository.js      — encapsulates all trip fetch() calls
+src/state/UrlStateManager.js    — encapsulates all URL read/write
+src/components/*.js             — each WebComponent is a class extending HTMLElement
+```
+
+**`App` in `main.js`** is the thin top-level orchestrator — it only wires collaborators together and reacts to events. It contains no rendering or data-fetching logic:
+
+```js
+class App {
+  #map;       // MapController
+  #sidebar;   // AppSidebarComponent
+  #urlState;  // UrlStateManager
+
+  async start() {
+    await this.#map.init();
+    this.#map.on('load', () => this.#onMapLoaded());
+    this.#urlState.onNavigate(state => this.#onNavigate(state));
+    this.#sidebar.addEventListener('trip-select', e => this.#onTripSelect(e));
+    this.#sidebar.addEventListener('poi-select',  e => this.#onPoiSelect(e));
+  }
+}
+```
+
+---
+
+### SOLID Principles
+
+Every class file carries a `SOLID notes:` JSDoc comment. The principles are applied as follows:
+
+#### S — Single Responsibility Principle
+
+Each class does exactly one thing:
+
+| Class | Responsibility |
+|---|---|
+| `MapLoader` | Loads the Google Maps `<script>` tag and fetches `theme.json` |
+| `TripRepository` | Fetches the trip manifest and individual trip JSON files |
+| `TripRenderer` | Draws one trip's polyline and waypoint markers on the map |
+| `PoiRenderer` | Draws all POI markers with InfoWindows |
+| `UrlStateManager` | Reads and writes `?trip=` / `?poi=` URL parameters |
+| `EventEmitter` | Pub/sub event subscription and dispatch only |
+
+#### O — Open/Closed Principle
+
+Classes are open for extension, closed for modification.
+
+- **`PoiRenderer`**: add a new POI type by extending the `POI_ICON_MAP` constant — no changes to the class body.
+- **`ColorUtils`**: add or change gradient colors by modifying the `COLOR_STOPS` array.
+- **`AppSidebarComponent`**: add a new accordion section by extending the `SECTIONS` config.
+
+#### L — Liskov Substitution Principle
+
+- All three WebComponents (`AppSidebarComponent`, `TripListComponent`, `PoiListComponent`) extend `HTMLElement` and fully honour its contract — they can be used anywhere a standard element is expected.
+- `MapController` extends `EventEmitter` without narrowing its interface.
+
+#### I — Interface Segregation Principle
+
+Each WebComponent exposes only the methods its consumers actually need:
+
+- `TripListComponent` — `setTrips(trips)`, `setActive(id)`
+- `PoiListComponent` — `setPoiList(pois)`, `setActive(index)`
+- `AppSidebarComponent` — `show()`, `openSection(name)`, `.tripList`, `.poiList`
+
+#### D — Dependency Inversion Principle
+
+`MapController` accepts its data sources as constructor arguments — concrete implementations are injected, not hard-coded:
+
+```js
+export class MapController extends EventEmitter {
+  constructor(
+    apiKey,
+    container,
+    tripRepo = new TripRepository(),   // injectable
+    poiRepo  = new PoiRepository(),    // injectable
+  ) { ... }
+}
+```
+
+Swapping to a mock or alternative repository requires no changes to `MapController` itself.
+
+---
+
+### Web Components
+
+The entire UI layer is built with the native **Custom Elements API** (no Shadow DOM — styles come from global `style.css`). Three custom elements are registered:
+
+| Tag | Class | File |
+|---|---|---|
+| `<app-sidebar>` | `AppSidebarComponent` | `src/components/AppSidebarComponent.js` |
+| `<trip-list>` | `TripListComponent` | `src/components/TripListComponent.js` |
+| `<poi-list>` | `PoiListComponent` | `src/components/PoiListComponent.js` |
+
+**Lifecycle**: all three use `connectedCallback()` as their single lifecycle hook — DOM building and event binding happen there.
+
+**Upward communication**: components dispatch `CustomEvent`s with `bubbles: true, composed: true` so the root `App` can listen on the sidebar element without needing direct references to the child components.
+
+```js
+// Inside TripListComponent — fires when the user clicks a trip card
+this.dispatchEvent(new CustomEvent('trip-select', {
+  detail: { id: trip.id },
+  bubbles: true,
+  composed: true,
+}));
+
+// Inside App — listens at the sidebar boundary
+this.#sidebar.addEventListener('trip-select', e => this.#onTripSelect(e));
+```
+
+**Registration**: each component file calls `customElements.define()` at module scope. They are imported in `main.js` before the DOM parser encounters their tags:
+
+```js
+import './src/components/TripListComponent.js';
+import './src/components/PoiListComponent.js';
+import './src/components/AppSidebarComponent.js';
+```
+
+---
+
+### EventEmitter Base Class
+
+`src/core/EventEmitter.js` is a minimal typed pub/sub class. `MapController` extends it to emit a `'load'` event once all data is rendered:
+
+```js
+export class EventEmitter {
+  #listeners = new Map();
+
+  on(event, handler)   { ... }  // subscribe; returns unsubscribe fn
+  once(event, handler) { ... }  // subscribe once; auto-removes after first call
+  off(event, handler)  { ... }  // unsubscribe
+  emit(event, payload) { ... }  // dispatch to all handlers
+}
+```
+
+---
+
+### Repository Pattern
+
+`TripRepository` and `PoiRepository` encapsulate all `fetch()` calls. They expose a single `fetchAll()` method. Data consumers never call `fetch()` directly.
+
+```js
+export class TripRepository {
+  async fetchAll() {
+    const manifest = await this.#fetchManifest();          // data/trips/index.json
+    const trips    = await Promise.all(
+      manifest.trips.map(path => this.#fetchTrip(path)),   // parallel fetch
+    );
+    return trips.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+}
+```
+
+---
+
+## Data Format
+
+### Trip JSON
 
 ```json
 {
-  "id": "trip-001",
-  "title": "Carpathian Loop",
-  "date": "2024-08-15",
+  "id": "trip_22-02-26",
+  "title": "Ride to Zagorje",
+  "date": "2026-02-22",
   "waypoints": [
-    { "lat": 48.9226, "lng": 24.7111 },
-    { "lat": 48.6271, "lng": 25.0049 },
-    { "lat": 48.2912, "lng": 25.9346 }
+    { "lat": 45.8150, "lng": 15.9819, "label": "Start — Zagreb" },
+    { "lat": 45.9800, "lng": 15.8700, "label": "Zagorje", "isVisible": true },
+    { "lat": 45.8150, "lng": 15.9819, "label": "End — Zagreb" }
   ]
 }
 ```
 
-### Full example with optional fields
-
-```json
-{
-  "id": "trip-002",
-  "title": "Black Sea Coast Ride",
-  "date": "2024-09-10",
-  "description": "Three-day coastal ride along the Black Sea.",
-  "distance_km": 740,
-  "duration_hours": 18,
-  "tags": ["coastal", "mountains", "3-day"],
-  "color": "#E55D2B",
-  "waypoints": [
-    {
-      "lat": 46.9651,
-      "lng": 31.9966,
-      "label": "Start — Mykolaiv",
-      "note": "Fuel stop"
-    },
-    {
-      "lat": 46.4825,
-      "lng": 30.7233,
-      "label": "Odesa"
-    },
-    {
-      "lat": 44.6166,
-      "lng": 33.5254,
-      "label": "Sevastopol area"
-    },
-    {
-      "lat": 44.9521,
-      "lng": 34.1024,
-      "label": "End — Simferopol"
-    }
-  ],
-  "route": [
-    { "lat": 46.9651, "lng": 31.9966 },
-    { "lat": 46.9480, "lng": 31.9710 },
-    { "lat": 46.9120, "lng": 31.9230 },
-    { "lat": 46.8874, "lng": 31.8601 },
-    { "lat": 46.8503, "lng": 31.7842 },
-    { "lat": 46.7891, "lng": 31.5670 },
-    { "lat": 46.7200, "lng": 31.3210 },
-    { "lat": 46.6540, "lng": 31.1080 },
-    { "lat": 46.5630, "lng": 30.9140 },
-    { "lat": 46.4825, "lng": 30.7233 },
-    { "lat": 46.2310, "lng": 30.7980 },
-    { "lat": 45.9870, "lng": 30.9450 },
-    { "lat": 45.7200, "lng": 31.2100 },
-    { "lat": 45.4560, "lng": 31.5430 },
-    { "lat": 45.1980, "lng": 31.8760 },
-    { "lat": 44.9100, "lng": 32.6430 },
-    { "lat": 44.7230, "lng": 33.2870 },
-    { "lat": 44.6166, "lng": 33.5254 },
-    { "lat": 44.6780, "lng": 33.6890 },
-    { "lat": 44.7830, "lng": 33.8540 },
-    { "lat": 44.9521, "lng": 34.1024 }
-  ]
-}
-```
-
-> **`route` vs `waypoints`:** `waypoints` are the named stops the rider planned the trip around (start, intermediate stops, end). `route` is the dense sequence of GPS coordinates that traces the **actual road geometry** — every turn, curve, and intersection the rider followed. It is produced by a routing engine (e.g. OSRM, GraphHopper, Google Directions API) or exported from a GPS device/GPX file, and contains enough points to faithfully render the road path on the map without straight-line shortcuts through buildings or terrain.
-
-### Manifest file (`data/trips/index.json`)
-
-```json
-{
-  "trips": [
-    "trips/trip-001.json",
-    "trips/trip-002.json"
-  ]
-}
-```
-
-### Field reference
+### Full field reference
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -207,119 +367,88 @@ Each trip is described by a single JSON file.
 | `waypoints` | array | yes | Named stops: start, intermediate points, end |
 | `waypoints[].lat` | number | yes | Latitude (WGS 84) |
 | `waypoints[].lng` | number | yes | Longitude (WGS 84) |
-| `waypoints[].label` | string | no | Point label shown on map hover |
-| `waypoints[].note` | string | no | Additional tooltip text |
-| `route` | array | no | Dense sequence of coordinates produced by a routing engine or GPS device, tracing the exact road geometry between waypoints (every turn and curve). Used to draw the polyline on the map. Falls back to straight lines between `waypoints` if omitted. |
-| `route[].lat` | number | yes (if route) | Latitude (WGS 84) |
-| `route[].lng` | number | yes (if route) | Longitude (WGS 84) |
+| `waypoints[].label` | string | no | Point label shown in InfoWindow |
+| `waypoints[].note` | string | no | Additional InfoWindow text |
+| `waypoints[].isVisible` | boolean | no | Render a circle marker for this waypoint |
 | `description` | string | no | Free-text trip description |
 | `distance_km` | number | no | Total distance in kilometres |
 | `duration_hours` | number | no | Total riding time |
 | `tags` | string[] | no | Searchable tags |
-| `color` | string (CSS color) | no | Route line colour on the map |
+| `color` | string (CSS color) | no | Route line color (overrides auto-gradient) |
+
+### POI JSON (`data/pois.json`)
+
+```json
+[
+  {
+    "title": "Viewpoint Medvednica",
+    "type": "viewpoint",
+    "lat": 45.9123,
+    "lng": 15.9700,
+    "description": "Great view over Zagreb.",
+    "address": "Medvednica, Zagreb"
+  }
+]
+```
+
+Supported `type` values: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoint`.
+
+### Trip manifest (`data/trips/index.json`)
+
+```json
+{
+  "trips": [
+    "trips/trip_22-02-26.json",
+    "trips/trip_18-03-26.json"
+  ]
+}
+```
 
 ---
 
 ## Technology Stack
 
-| Layer | Choice | Reason |
+| Layer | Choice | Notes |
 |---|---|---|
-| Markup | HTML5 | No framework needed for a static page |
-| Styles | Vanilla CSS (custom properties) | Minimal footprint, no build step required |
-| Logic | Vanilla JavaScript (ES Modules) | No bundler required for initial version |
-| Mapping | **Google Maps JavaScript API** | Widely supported, reliable, rich SDK |
-| Map tiles | Google Maps Terrain / Roadmap | Terrain style suits motorcycle routes |
-| Hosting | GitHub Pages (initial) | Free, CI/CD via `git push` |
-| Future bundler | Vite | Zero-config, fast HMR if the project grows |
+| Markup | HTML5 | 17-line shell; `<app-sidebar>` custom element in body |
+| Styles | Vanilla CSS with custom properties | No preprocessor; no framework |
+| Logic | Vanilla ES2022 Modules | Private class fields (`#`); no bundler |
+| Mapping | Google Maps JavaScript API + Directions library | Loaded dynamically at runtime |
+| Map style | Google Maps TERRAIN + custom JSON style | `theme.json` passed as `styles` option |
+| Routing | Google Maps `DirectionsService` | DRIVING mode, per-segment |
+| Hosting | GitHub Pages / Netlify / Vercel | Zero-config static deployment |
+| Build tools | None | Zero dependencies, no `package.json` |
 
 ---
 
-## Rendering Pipeline
+## Development Workflow
 
-```
-1. Browser loads index.html
-        │
-        ▼
-2. main.js dynamically loads Google Maps JS API, then calls initMap (mapController.js)
-        │
-        ▼
-3. tripLoader.js fetches data/trips/index.json (manifest)
-        │
-        ▼
-4. For each trip in the manifest:
-     a. fetch the individual trip JSON file
-     b. validate required fields (id, title, date, waypoints)
-     c. if `route` is present, use it as the polyline geometry; otherwise fall back to straight lines between `waypoints`
-     d. convert to GeoJSON Feature (LineString for the route + Points for waypoints)
-        │
-        ▼
-5. mapController.addTrip(geoJsonFeature):
-     a. new google.maps.Polyline (route line)
-     b. new google.maps.Marker (waypoint markers)
-        │
-        ▼
-6. tripPanel.js renders the trip list in the sidebar
-        │
-        ▼
-7. User clicks a trip → map.fitBounds(trip.bbox) + highlight layer
+### Prerequisites
+
+A modern browser and a local static file server:
+
+```bash
+# Python (no install required)
+python3 -m http.server 8080
+
+# Node.js
+npx serve .
 ```
 
----
+Open `http://localhost:8080` in the browser.
 
-## UI / UX Design Decisions
+### Adding a new trip
 
-- **Full-screen map** with a collapsible sidebar on the left.
-- **Trip list in sidebar** — each entry shows title, date, and distance.
-- Clicking a trip **flies the camera** to fit the route in view.
-- Active trip route is **highlighted** (thicker line, brighter colour).
-- Waypoints are shown as **small circle markers**; start and end use distinct icons.
-- On hover/click, a **popup** (Google Maps `InfoWindow`) shows the waypoint label and note.
-- The UI is **responsive**: on small screens the sidebar becomes a bottom sheet.
-- **Map type toggle** (Terrain vs. Roadmap).
+1. Create `data/trips/trip_DD-MM-YY.json` following the data format above.
+2. Add `waypoints` with the named stops (start, intermediate, end).
+3. Add the relative path to `data/trips/index.json`.
+4. Refresh the browser — the trip appears and the color gradient updates automatically.
 
----
+The Directions API will resolve the road-following route from the waypoints. No dense coordinate array is needed.
 
-## Google Maps Integration
+### Google Maps API key
 
-### Setup
-
-1. Obtain an API key from the [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable the **Maps JavaScript API** for your project.
-3. Store the key in a top-level `config.js` file (gitignored) or as an environment variable injected at build time. **Never commit the key in a public repository.**
-
-```js
-// config.js  (gitignored)
-export const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY_HERE';
-```
-
-### Map initialisation
-
-```js
-import { initMap } from './src/mapController.js';
-
-const mapWrapper = await initMap(GOOGLE_MAPS_API_KEY);
-
-mapWrapper.on('load', () => {
-  console.log('Map ready');
-});
-```
-
-### Route rendering
-
-```js
-// Use the dense road-following route if available, otherwise fall back
-// to straight lines between the named waypoints.
-const pathCoords = (trip.route ?? trip.waypoints).map(pt => ({ lat: pt.lat, lng: pt.lng }));
-
-const polyline = new google.maps.Polyline({
-  path: pathCoords,
-  geodesic: true,
-  strokeColor: trip.color ?? '#E55D2B',
-  strokeOpacity: 1.0,
-  strokeWeight: 3,
-  map,
-});
-```
+The key is hardcoded in `main.js` (line 24). For a public deployment, restrict it to your domain via **HTTP referrer restrictions** in the Google Cloud Console to prevent unauthorized use.
 
 ---
 
@@ -331,73 +460,31 @@ const polyline = new google.maps.Polyline({
 2. In repository **Settings → Pages**, set source to `main` branch, `/ (root)`.
 3. Site is live at `https://<username>.github.io/moto-map/`.
 
-### Netlify / Vercel (alternative)
+### Netlify / Vercel
 
-- Connect repository, set **publish directory** to `/` (no build command required).
-- Both platforms support custom domains and automatic HTTPS.
-
-### Important: Google Maps API key on a public site
-
-The API key will be visible in client-side code. Mitigate this by:
-- **Restricting the key** in the Google Cloud Console to your domain(s) only (HTTP referrer restrictions).
-- Rotating the key if it is ever exposed or abused.
-
----
-
-## Development Workflow
-
-### Prerequisites
-
-- A modern browser (Chrome / Firefox / Safari).
-- A local static file server — any of the following:
-
-```bash
-# Option 1 — Python (no install)
-python3 -m http.server 8080
-
-# Option 2 — Node.js (no install beyond Node)
-npx serve .
-
-# Option 3 — VS Code Live Server extension
-```
-
-### Adding a new trip
-
-1. Create `data/trips/trip-NNN.json` following the data format above.
-2. Populate `waypoints` with the named stops (start, intermediate, end).
-3. Populate `route` with the dense road-following coordinates exported from a GPS device, GPX file, or a routing engine (OSRM, GraphHopper, Google Directions API). Without `route` the map will draw straight lines between waypoints.
-4. Add the path to `data/trips/index.json`.
-5. Refresh the browser — the trip appears automatically.
-
-### Linting & formatting (optional, recommended)
-
-```bash
-npx eslint src/
-npx prettier --write .
-```
+Connect the repository and set the **publish directory** to `/` (no build command needed). Both platforms support custom domains and automatic HTTPS.
 
 ---
 
 ## Future Enhancements
 
-The following features are planned for future iterations, in rough priority order:
+Planned features in rough priority order:
 
-1. **Trip statistics panel** — total distance, elevation gain (from external elevation API), average speed.
-2. **Photo gallery per trip** — lightbox of trip photos linked from the JSON file.
-3. **Elevation profile chart** — SVG/Canvas chart drawn below or beside the map.
-4. **Trip search & filtering** — filter by tag, date range, or distance.
-5. **Vite bundler** — add a build step for asset hashing, CSS bundling, and environment variable management (Google Maps API key via `.env`).
-6. **GPX / KML import** — parse GPX files from a GPS device and auto-generate trip JSON.
-7. **Offline support** — service worker to cache tiles and trip data for offline viewing.
-8. **Animated route drawing** — draw the route progressively on the map for a storytelling effect.
-9. **Custom map style** — design a bespoke Google Maps style via the Cloud Console styling wizard optimised for road routes.
-10. **Multi-language support** — i18n for trip descriptions.
+1. **Trip statistics panel** — total distance (via `GeoUtils.haversineKm`, already implemented), elevation gain, average speed.
+2. **Photo gallery per trip** — lightbox of trip photos linked from the JSON.
+3. **Elevation profile chart** — SVG/Canvas chart rendered alongside the map.
+4. **GPX / KML import** — parse GPX files from a GPS device and auto-generate trip JSON.
+5. **Trip search & filtering** — filter by tag, date range, or distance.
+6. **Animated route drawing** — draw the route progressively for a storytelling effect.
+7. **Offline support** — service worker to cache map tiles and trip data.
+8. **Vite bundler** — add a build step for asset hashing and `.env`-based API key management.
+9. **Multi-language support** — i18n for trip descriptions.
 
 ---
 
 ## Contributing
 
-This is a personal project. If you want to fork it and use it for your own trips, everything in `data/trips/` is yours to replace. See [Data Format](#data-format-trip-json) for the JSON schema.
+This is a personal project. To fork it for your own trips, replace everything in `data/` with your own JSON files and update the map center in `src/map/MapController.js`. See [Data Format](#data-format) for the full schema.
 
 ---
 
