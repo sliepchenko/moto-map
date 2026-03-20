@@ -167,6 +167,7 @@ async function loadTrips() {
  * the Directions API call fails.
  * @param {google.maps.Map} map
  * @param {Object} trip - trip data object
+ * @returns {{ polyline: google.maps.Polyline, markers: google.maps.Marker[] }}
  */
 function renderTrip(map, trip) {
   // _color is set by assignTripColors() before rendering; fall back to the
@@ -198,9 +199,6 @@ function renderTrip(map, trip) {
   }
 
   // Request road-following directions for each consecutive pair of waypoints.
-  // Segments are processed sequentially to guarantee point order in the shared
-  // path array — parallel callbacks would race and produce lines between
-  // non-neighbouring points.
   (async () => {
     for (let i = 0; i < waypoints.length - 1; i++) {
       const origin = new google.maps.LatLng(waypoints[i].lat, waypoints[i].lng);
@@ -214,7 +212,6 @@ function renderTrip(map, trip) {
           path.push(overview[j]);
         }
       } else {
-        // Fallback: draw a straight segment if routing fails
         console.warn(`Directions request failed (${status}). Drawing straight line for segment ${i}→${i + 1}.`);
         path.push(origin);
         path.push(destination);
@@ -223,6 +220,7 @@ function renderTrip(map, trip) {
   })();
 
   // Draw waypoint markers — hidden by default, shown only when isVisible: true
+  const markers = [];
   waypoints.forEach((wp, i) => {
     if (!wp.isVisible) return;
 
@@ -249,7 +247,11 @@ function renderTrip(map, trip) {
       });
       marker.addListener('click', () => infoWindow.open(map, marker));
     }
+
+    markers.push(marker);
   });
+
+  return { polyline: poly, markers };
 }
 
 /**
@@ -257,11 +259,12 @@ function renderTrip(map, trip) {
  * loaded from assets/icons/ and opens an InfoWindow on click.
  * @param {google.maps.Map} map
  * @param {Object} trip - trip data object (may have a `poi` array)
+ * @returns {google.maps.Marker[]}
  */
 function renderPois(map, trip) {
-  if (!Array.isArray(trip.poi) || trip.poi.length === 0) return;
+  if (!Array.isArray(trip.poi) || trip.poi.length === 0) return [];
 
-  trip.poi.forEach((poi) => {
+  return trip.poi.map((poi) => {
     const iconUrl = POI_ICON_MAP[poi.type] ?? null;
 
     const markerOptions = {
@@ -297,6 +300,8 @@ function renderPois(map, trip) {
       });
       marker.addListener('click', () => infoWindow.open(map, marker));
     }
+
+    return marker;
   });
 }
 
@@ -314,13 +319,26 @@ function fitMapToTrips(map, trips) {
 }
 
 /**
+ * Fits the map viewport to a single trip's waypoints.
+ * @param {google.maps.Map} map
+ * @param {Object} trip
+ */
+function fitMapToTrip(map, trip) {
+  const bounds = new google.maps.LatLngBounds();
+  trip.waypoints.forEach(wp => bounds.extend({ lat: wp.lat, lng: wp.lng }));
+  map.fitBounds(bounds);
+}
+
+/**
  * Initialises the Google Map centred on Zagreb, loads and renders all trips.
- * Returns a promise that resolves with an object exposing:
- *   - map: the google.maps.Map instance
+ * Returns a promise that resolves with an app object exposing:
+ *   - map:          the google.maps.Map instance
+ *   - trips:        loaded trip objects (available after 'load' fires)
+ *   - selectTrip(id): highlight a trip and fly to it; pass null to deselect
  *   - on(event, handler): thin wrapper around map.addListener
  *
  * @param {string} apiKey - Google Maps API key
- * @returns {Promise<{ map: google.maps.Map, on: Function }>}
+ * @returns {Promise<{ map: google.maps.Map, trips: Array, selectTrip: Function, on: Function }>}
  */
 export async function initMap(apiKey) {
   const [, mapStyles] = await Promise.all([
@@ -339,30 +357,93 @@ export async function initMap(apiKey) {
     fullscreenControl: true,
   });
 
+  // tripLayers[id] = { trip, polyline, markers, poiMarkers }
+  const tripLayers = new Map();
+  let loadedTrips = [];
+  let activeId = null;
+
+  /**
+   * Apply visual highlight / dim styles to all trip layers.
+   * @param {string|null} selectedId - the currently selected trip id, or null for "all equal"
+   */
+  function applyHighlight(selectedId) {
+    tripLayers.forEach(({ trip, polyline }, id) => {
+      const isSelected = selectedId === null || id === selectedId;
+      polyline.setOptions({
+        strokeOpacity: isSelected ? 1.0 : 0.25,
+        strokeWeight: isSelected && selectedId !== null ? 6 : 4,
+      });
+    });
+  }
+
+  /**
+   * Select a trip by id: highlight it, fly to it, and update the active state.
+   * Pass null to deselect (shows all trips equally).
+   * @param {string|null} id
+   */
+  function selectTrip(id) {
+    activeId = id;
+    applyHighlight(id);
+
+    if (id) {
+      const layer = tripLayers.get(id);
+      if (layer) {
+        fitMapToTrip(map, layer.trip);
+      }
+    } else {
+      if (loadedTrips.length > 0) fitMapToTrips(map, loadedTrips);
+    }
+  }
+
+  // Provide a simple event bridge
+  const loadCallbacks = [];
+  let mapReady = false;
+
   // Load and render all trips once the map tiles are ready
   google.maps.event.addListenerOnce(map, 'idle', async () => {
     try {
       const trips = await loadTrips();
       trips.sort((a, b) => new Date(a.date) - new Date(b.date));
       assignTripColors(trips);
+      loadedTrips = trips;
+
       trips.forEach(trip => {
-        renderTrip(map, trip);
-        renderPois(map, trip);
+        const { polyline, markers } = renderTrip(map, trip);
+        const poiMarkers = renderPois(map, trip);
+        tripLayers.set(trip.id, { trip, polyline, markers, poiMarkers });
       });
+
       if (trips.length > 0) {
         fitMapToTrips(map, trips);
       }
     } catch (err) {
       console.error('Failed to load trips:', err);
     }
+
+    mapReady = true;
+    loadCallbacks.forEach(cb => cb());
   });
 
-  // Provide a simple event bridge compatible with the Mapbox `.on()` pattern
   const wrapper = {
     map,
+    get trips() { return loadedTrips; },
+
+    selectTrip(id) {
+      if (!mapReady) {
+        // Queue until map is ready
+        loadCallbacks.push(() => selectTrip(id));
+      } else {
+        selectTrip(id);
+      }
+    },
+
     on(event, handler) {
       if (event === 'load') {
-        google.maps.event.addListenerOnce(map, 'idle', handler);
+        if (mapReady) {
+          handler();
+        } else {
+          loadCallbacks.push(handler);
+        }
       } else {
         map.addListener(event, handler);
       }
