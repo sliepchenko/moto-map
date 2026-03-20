@@ -164,6 +164,65 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Trip Statistics Panel ───────────────────────────────────────────────── */
+
+trip-stats-panel {
+  display: block;
+}
+
+trip-stats-panel.hidden {
+  display: none;
+}
+
+.stats-panel {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 0 4px;
+}
+
+.stats-panel-header {
+  padding: 0 16px 8px;
+}
+
+.stats-panel-title {
+  color: #22c55e;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-list {
+  list-style: none;
+  width: 100%;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 16px;
+  gap: 8px;
+}
+
+.stats-label {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.stats-value {
+  color: #e5e7eb;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 /* ── My POI list ──────────────────────────────────────────────────────────── */
 
 #poi-list {

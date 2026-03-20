@@ -40,3 +40,24 @@ export function estimateTripDistance(trip) {
   }
   return total;
 }
+
+/**
+ * Estimates the riding duration of a trip based on straight-line distance and
+ * an assumed average speed. Returns a human-readable string like "1 h 23 min"
+ * or "45 min".
+ *
+ * The assumed average speed accounts for stops, corners, and mixed roads.
+ *
+ * @param {{ route?: {lat:number,lng:number}[], waypoints: {lat:number,lng:number}[] }} trip
+ * @param {number} [avgSpeedKph=50] — assumed average riding speed in km/h
+ * @returns {string} formatted duration string
+ */
+export function estimateTripDuration(trip, avgSpeedKph = 50) {
+  const km      = estimateTripDistance(trip);
+  const totalMin = Math.round((km / avgSpeedKph) * 60);
+  const h   = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  if (h === 0) return `${min} min`;
+  if (min === 0) return `${h} h`;
+  return `${h} h ${min} min`;
+}

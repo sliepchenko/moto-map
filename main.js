@@ -17,6 +17,7 @@ import { UrlStateManager }      from './src/state/UrlStateManager.js';
 // Register WebComponents before the DOM parser encounters their tags.
 import './src/components/TripListComponent.js';
 import './src/components/PoiListComponent.js';
+import './src/components/TripStatsPanel.js';
 import './src/components/AppSidebarComponent.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -112,6 +113,14 @@ class App {
   #applyTrip(id) {
     this.#map.selectTrip(id ?? null);
     this.#sidebar.tripList.setActive(id ?? null);
+
+    const { tripStats } = this.#sidebar;
+    if (id) {
+      const trip = this.#map.trips.find(t => t.id === id);
+      if (trip) tripStats.show(trip);
+    } else {
+      tripStats.hide();
+    }
   }
 
   /**
