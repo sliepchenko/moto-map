@@ -126,3 +126,12 @@ class App {
 
 // Start the application
 new App().start();
+
+// ── Service Worker registration ───────────────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(err => console.warn('Service Worker registration failed:', err));
+  });
+}
