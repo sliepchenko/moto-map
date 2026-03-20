@@ -1,3 +1,5 @@
+import { estimateTripDistance } from '../core/GeoUtils.js';
+
 /**
  * `<trip-list>` — renders the "My Rides" sidebar list.
  *
@@ -72,9 +74,14 @@ export class TripListComponent extends HTMLElement {
       day: 'numeric', month: 'short', year: 'numeric',
     });
 
+    const distanceKm = estimateTripDistance(trip).toFixed(1);
+
     li.innerHTML = `
       <span class="trip-title">${trip.title}</span>
-      <span class="trip-date">${date}</span>
+      <span class="trip-meta">
+        <span class="trip-date">${date}</span>
+        <span class="trip-distance">${distanceKm} km</span>
+      </span>
     `;
 
     li.addEventListener('click', () => {

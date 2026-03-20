@@ -147,9 +147,21 @@ html, body {
   color: #22c55e;
 }
 
+.trip-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .trip-date {
   color: #6b7280;
   font-size: 12px;
+}
+
+.trip-distance {
+  color: #6b7280;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── My POI list ──────────────────────────────────────────────────────────── */
