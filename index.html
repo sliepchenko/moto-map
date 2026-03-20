@@ -10,12 +10,33 @@
 <body>
   <div id="map"></div>
 
-  <!-- Sidebar trip list -->
+  <!-- Sidebar -->
   <nav id="sidebar" class="hidden">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Trips</span>
+
+    <div class="accordion-section open" data-section="rides">
+      <button class="accordion-header">
+        <span>My Rides</span>
+        <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div class="accordion-body">
+        <ul id="trip-list"></ul>
+      </div>
     </div>
-    <ul id="trip-list"></ul>
+
+    <div class="accordion-section" data-section="poi">
+      <button class="accordion-header">
+        <span>My POI</span>
+        <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div class="accordion-body">
+        <ul id="poi-list"></ul>
+      </div>
+    </div>
+
   </nav>
 
   <script type="module" src="main.js"></script>

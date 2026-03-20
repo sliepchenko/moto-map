@@ -162,6 +162,20 @@ async function loadTrips() {
 }
 
 /**
+ * Fetches the global POI list from data/pois.json.
+ * @returns {Promise<Array>} - array of POI objects
+ */
+async function loadPois() {
+  const resp = await fetch('data/pois.json');
+  if (!resp.ok) {
+    console.warn(`Failed to load pois.json (${resp.status}). No POIs will be shown.`);
+    return [];
+  }
+  const data = await resp.json();
+  return Array.isArray(data.pois) ? data.pois : [];
+}
+
+/**
  * Renders a single trip on the map using Google DirectionsService to follow
  * actual roads between waypoints. Falls back to a straight-line polyline if
  * the Directions API call fails.
@@ -255,16 +269,16 @@ function renderTrip(map, trip) {
 }
 
 /**
- * Renders POI markers for a single trip. Each POI uses a custom SVG icon
+ * Renders POI markers from a flat POI array. Each POI uses a custom SVG icon
  * loaded from assets/icons/ and opens an InfoWindow on click.
  * @param {google.maps.Map} map
- * @param {Object} trip - trip data object (may have a `poi` array)
+ * @param {Array} pois - array of POI objects
  * @returns {google.maps.Marker[]}
  */
-function renderPois(map, trip) {
-  if (!Array.isArray(trip.poi) || trip.poi.length === 0) return [];
+function renderPois(map, pois) {
+  if (!Array.isArray(pois) || pois.length === 0) return [];
 
-  return trip.poi.map((poi) => {
+  return pois.map((poi) => {
     const iconUrl = POI_ICON_MAP[poi.type] ?? null;
 
     const markerOptions = {
@@ -294,12 +308,13 @@ function renderPois(map, trip) {
     if (poi.description) contentParts.push(`${poi.description} ${mapsLink}`);
     else                 contentParts.push(mapsLink);
 
-    if (contentParts.length > 0) {
-      const infoWindow = new google.maps.InfoWindow({
-        content: contentParts.join('<br>'),
-      });
-      marker.addListener('click', () => infoWindow.open(map, marker));
-    }
+    const infoWindow = new google.maps.InfoWindow({
+      content: contentParts.join('<br>'),
+    });
+    marker.addListener('click', () => infoWindow.open(map, marker));
+
+    // Store the infoWindow on the marker so it can be opened programmatically
+    marker._infoWindow = infoWindow;
 
     return marker;
   });
@@ -357,9 +372,11 @@ export async function initMap(apiKey) {
     fullscreenControl: true,
   });
 
-  // tripLayers[id] = { trip, polyline, markers, poiMarkers }
+  // tripLayers[id] = { trip, polyline, markers }
   const tripLayers = new Map();
   let loadedTrips = [];
+  let loadedPois = [];
+  let poiMarkers = [];
   let activeId = null;
 
   /**
@@ -402,16 +419,18 @@ export async function initMap(apiKey) {
   // Load and render all trips once the map tiles are ready
   google.maps.event.addListenerOnce(map, 'idle', async () => {
     try {
-      const trips = await loadTrips();
+      const [trips, pois] = await Promise.all([loadTrips(), loadPois()]);
       trips.sort((a, b) => new Date(a.date) - new Date(b.date));
       assignTripColors(trips);
       loadedTrips = trips;
+      loadedPois = pois;
 
       trips.forEach(trip => {
         const { polyline, markers } = renderTrip(map, trip);
-        const poiMarkers = renderPois(map, trip);
-        tripLayers.set(trip.id, { trip, polyline, markers, poiMarkers });
+        tripLayers.set(trip.id, { trip, polyline, markers });
       });
+
+      poiMarkers = renderPois(map, pois);
 
       if (trips.length > 0) {
         fitMapToTrips(map, trips);
@@ -427,6 +446,7 @@ export async function initMap(apiKey) {
   const wrapper = {
     map,
     get trips() { return loadedTrips; },
+    get pois()  { return loadedPois; },
 
     selectTrip(id) {
       if (!mapReady) {
@@ -434,6 +454,30 @@ export async function initMap(apiKey) {
         loadCallbacks.push(() => selectTrip(id));
       } else {
         selectTrip(id);
+      }
+    },
+
+    /**
+     * Fly to and open the InfoWindow for a specific POI by its global index.
+     * @param {number} poiIndex - zero-based index in the global pois array
+     */
+    openPoi(poiIndex) {
+      const doOpen = () => {
+        const marker = poiMarkers[poiIndex];
+        if (!marker) return;
+
+        const pos = marker.getPosition();
+        map.panTo(pos);
+        map.setZoom(15);
+        if (marker._infoWindow) {
+          marker._infoWindow.open(map, marker);
+        }
+      };
+
+      if (!mapReady) {
+        loadCallbacks.push(doOpen);
+      } else {
+        doOpen();
       }
     },
 
