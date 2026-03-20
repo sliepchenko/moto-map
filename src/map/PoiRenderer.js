@@ -21,14 +21,20 @@ const POI_ICON_MAP = {
  */
 export class PoiRenderer {
   /**
-   * @param {google.maps.Map} map
+   * @param {google.maps.Map}                          map
+   * @param {{ current: google.maps.InfoWindow|null }} openInfoWindow
+   *   Shared holder so all renderers and the controller close the same window.
    */
-  constructor(map) {
-    this.#map = map;
+  constructor(map, openInfoWindow) {
+    this.#map            = map;
+    this.#openInfoWindow = openInfoWindow;
   }
 
   /** @type {google.maps.Map} */
   #map;
+
+  /** @type {{ current: google.maps.InfoWindow|null }} */
+  #openInfoWindow;
 
   /**
    * Renders all POIs and returns the created markers.
@@ -62,18 +68,22 @@ export class PoiRenderer {
     const marker = new google.maps.Marker(markerOptions);
 
     // Build InfoWindow content
-    const contentParts = [];
-    if (poi.title) contentParts.push(`<strong>${poi.title}</strong>`);
-
     const mapsQuery = poi.address
       ? encodeURIComponent(poi.address)
       : `${poi.lat},${poi.lng}`;
     const mapsLink = `<a href="https://maps.google.com/?q=${mapsQuery}" target="_blank" rel="noopener noreferrer">🔗</a>`;
 
-    contentParts.push(poi.description ? `${poi.description} ${mapsLink}` : mapsLink);
+    const bodyContent = poi.description ? `${poi.description} ${mapsLink}` : mapsLink;
 
-    const infoWindow = new google.maps.InfoWindow({ content: contentParts.join('<br>') });
-    marker.addListener('click', () => infoWindow.open(this.#map, marker));
+    const infoWindow = new google.maps.InfoWindow({
+      headerContent: poi.title ?? poi.type,
+      content:       bodyContent,
+    });
+    marker.addListener('click', () => {
+      this.#openInfoWindow.current?.close();
+      infoWindow.open(this.#map, marker);
+      this.#openInfoWindow.current = infoWindow;
+    });
 
     // Attach for programmatic access
     marker._infoWindow = infoWindow;

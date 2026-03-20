@@ -9,14 +9,20 @@
  */
 export class TripRenderer {
   /**
-   * @param {google.maps.Map} map
+   * @param {google.maps.Map}                          map
+   * @param {{ current: google.maps.InfoWindow|null }} openInfoWindow
+   *   Shared holder so all renderers and the controller close the same window.
    */
-  constructor(map) {
-    this.#map = map;
+  constructor(map, openInfoWindow) {
+    this.#map            = map;
+    this.#openInfoWindow = openInfoWindow;
   }
 
   /** @type {google.maps.Map} */
   #map;
+
+  /** @type {{ current: google.maps.InfoWindow|null }} */
+  #openInfoWindow;
 
   /**
    * Draws the trip on the map. Returns handles to the created map objects so
@@ -106,7 +112,11 @@ export class TripRenderer {
         const infoWindow = new google.maps.InfoWindow({
           content: `<strong>${wp.label ?? ''}</strong>${wp.note ? `<br>${wp.note}` : ''}`,
         });
-        marker.addListener('click', () => infoWindow.open(this.#map, marker));
+        marker.addListener('click', () => {
+          this.#openInfoWindow.current?.close();
+          infoWindow.open(this.#map, marker);
+          this.#openInfoWindow.current = infoWindow;
+        });
       }
 
       acc.push(marker);

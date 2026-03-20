@@ -57,8 +57,16 @@ export class MapController extends EventEmitter {
   /** @type {Object[]} */             #pois      = [];
   /** @type {Map<string, { trip: Object, polyline: google.maps.Polyline, markers: google.maps.Marker[] }>} */
   #tripLayers = new Map();
-  /** @type {google.maps.Marker[]} */ #poiMarkers = [];
-  /** @type {string|null} */          #activeId   = null;
+  /** @type {google.maps.Marker[]} */                        #poiMarkers    = [];
+  /** @type {string|null} */                                 #activeId      = null;
+  /**
+   * Shared holder passed to every renderer so that opening any InfoWindow
+   * (POI click, waypoint click, or programmatic openPoi) always closes the
+   * previously open one, regardless of which renderer created it.
+   *
+   * @type {{ current: google.maps.InfoWindow|null }}
+   */
+  #openInfoWindow = { current: null };
 
   // ── public API ────────────────────────────────────────────────────────────
 
@@ -120,9 +128,16 @@ export class MapController extends EventEmitter {
     const marker = this.#poiMarkers[index];
     if (!marker) return;
 
+    // Close any previously open InfoWindow before opening the new one
+    this.#openInfoWindow.current?.close();
+
     this.#map.panTo(marker.getPosition());
     this.#map.setZoom(15);
-    marker._infoWindow?.open(this.#map, marker);
+
+    if (marker._infoWindow) {
+      marker._infoWindow.open(this.#map, marker);
+      this.#openInfoWindow.current = marker._infoWindow;
+    }
   }
 
   // ── private ──────────────────────────────────────────────────────────────
@@ -138,13 +153,13 @@ export class MapController extends EventEmitter {
       this.#trips = trips;
       this.#pois  = pois;
 
-      const tripRenderer = new TripRenderer(this.#map);
+      const tripRenderer = new TripRenderer(this.#map, this.#openInfoWindow);
       trips.forEach(trip => {
         const { polyline, markers } = tripRenderer.render(trip);
         this.#tripLayers.set(trip.id, { trip, polyline, markers });
       });
 
-      const poiRenderer  = new PoiRenderer(this.#map);
+      const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
       this.#poiMarkers   = poiRenderer.renderAll(pois);
 
       if (trips.length > 0) this.#fitToAllTrips();
