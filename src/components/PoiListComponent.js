@@ -9,6 +9,7 @@ const POI_EMOJI = {
   mechanic:  '🔧',
   water:     '💧',
   viewpoint: '🔭',
+  castle:    '🏰',
 };
 
 /**

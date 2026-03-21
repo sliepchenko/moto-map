@@ -9,6 +9,7 @@ const POI_ICON_MAP = {
   mechanic:  'assets/icons/mechanic.svg',
   water:     'assets/icons/water.svg',
   viewpoint: 'assets/icons/viewpoint.svg',
+  castle:    'assets/icons/castle.svg',
 };
 
 /**

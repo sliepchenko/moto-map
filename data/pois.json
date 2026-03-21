@@ -36,6 +36,13 @@
       "lng": 16.09950715726359,
       "title": "Čiče lake",
       "description": "Nice calm place, pretty nice for brake"
+    },
+    {
+      "type": "castle",
+      "lat": 46.310097976191564,
+      "lng": 16.33427143003812,
+      "title": "Varazdin Castle",
+      "description": "Good enought to visit 2nd time"
     }
   ]
 }

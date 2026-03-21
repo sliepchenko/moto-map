@@ -301,6 +301,233 @@ trip-stats-panel.hidden {
   max-width: 180px;
 }
 
+/* ── Route Planner ────────────────────────────────────────────────────────── */
+
+route-planner {
+  display: block;
+}
+
+.rp-container {
+  padding: 10px 0 8px;
+}
+
+/* Waypoint list */
+.rp-waypoints {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.rp-wp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #3b82f6;
+}
+
+.rp-wp-index {
+  color: #3b82f6;
+  font-size: 11px;
+  font-weight: 700;
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.rp-wp-label {
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.rp-wp-label.resolved {
+  color: #d1d5db;
+}
+
+.rp-wp-label.pending {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.rp-wp-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.rp-wp-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color 0.12s, background 0.12s;
+}
+
+.rp-wp-btn:hover:not(:disabled) {
+  color: #d1d5db;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rp-wp-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.rp-wp-remove:hover:not(:disabled) {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* Add-stop row */
+.rp-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 16px;
+  margin-bottom: 6px;
+}
+
+.rp-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: #e5e7eb;
+  font-size: 12px;
+  padding: 6px 8px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+
+.rp-input::placeholder {
+  color: #4b5563;
+}
+
+.rp-input:focus {
+  border-color: #3b82f6;
+}
+
+/* Buttons */
+.rp-btn {
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  transition: background 0.15s, opacity 0.15s;
+  line-height: 1.2;
+}
+
+.rp-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.rp-btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rp-btn-add {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.rp-btn-add:hover {
+  background: #2563eb;
+}
+
+.rp-btn-pick {
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rp-btn-pick:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+}
+
+.rp-btn-pick.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+/* Actions row */
+.rp-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 16px 2px;
+}
+
+.rp-btn-directions {
+  flex: 1;
+  background: #16a34a;
+  color: #fff;
+}
+
+.rp-btn-directions:hover:not(:disabled) {
+  background: #22c55e;
+}
+
+.rp-btn-directions:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.rp-btn-save {
+  flex: 1;
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.rp-btn-save:hover:not(:disabled) {
+  background: #3b82f6;
+}
+
+.rp-btn-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.rp-btn-clear {
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rp-btn-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+}
+
+/* Status line */
+.rp-status {
+  padding: 4px 16px 2px;
+  font-size: 11px;
+  color: #6b7280;
+  min-height: 18px;
+  line-height: 1.4;
+}
+
 /* ── Responsive: bottom sheet on narrow screens ──────────────────────────── */
 
 @media (max-width: 600px) {

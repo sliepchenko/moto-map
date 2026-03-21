@@ -53,7 +53,7 @@ const DATA_ASSETS = [
   '/data/pois.json',
   '/data/trips/index.json',
   '/data/trips/trip_22-02-26.json',
-  '/data/trips/trip_18-03-26.json',
+  '/data/trips/trip_15-03-26.json',
 ];
 
 // ── Install ──────────────────────────────────────────────────────────────────

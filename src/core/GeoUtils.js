@@ -27,13 +27,13 @@ export function haversineKm(a, b) {
 
 /**
  * Estimates the total route length of a trip by summing Haversine distances
- * between consecutive points. Uses `route` if present, otherwise `waypoints`.
+ * between consecutive waypoints.
  *
- * @param {{ route?: {lat:number,lng:number}[], waypoints: {lat:number,lng:number}[] }} trip
+ * @param {{ waypoints: {lat:number,lng:number}[] }} trip
  * @returns {number} estimated distance in km
  */
 export function estimateTripDistance(trip) {
-  const pts = trip.route ?? trip.waypoints;
+  const pts = trip.waypoints;
   let total = 0;
   for (let i = 0; i < pts.length - 1; i++) {
     total += haversineKm(pts[i], pts[i + 1]);
@@ -48,7 +48,7 @@ export function estimateTripDistance(trip) {
  *
  * The assumed average speed accounts for stops, corners, and mixed roads.
  *
- * @param {{ route?: {lat:number,lng:number}[], waypoints: {lat:number,lng:number}[] }} trip
+ * @param {{ waypoints: {lat:number,lng:number}[] }} trip
  * @param {number} [avgSpeedKph=50] — assumed average riding speed in km/h
  * @returns {string} formatted duration string
  */

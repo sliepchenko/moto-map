@@ -3,6 +3,7 @@ import { assignTripColors }  from '../core/ColorUtils.js';
 import { MapLoader }         from './MapLoader.js';
 import { TripRenderer }      from './TripRenderer.js';
 import { PoiRenderer }       from './PoiRenderer.js';
+import { RouteRenderer }     from './RouteRenderer.js';
 import { TripRepository }    from '../data/TripRepository.js';
 import { PoiRepository }     from '../data/PoiRepository.js';
 
@@ -67,6 +68,18 @@ export class MapController extends EventEmitter {
    * @type {{ current: google.maps.InfoWindow|null }}
    */
   #openInfoWindow = { current: null };
+
+  /** @type {RouteRenderer|null} */
+  #routeRenderer = null;
+
+  /** @type {google.maps.Geocoder|null} */
+  #geocoder = null;
+
+  /** True when the map is in "pick a point" mode for the route planner. */
+  #pickingMode = false;
+
+  /** @type {google.maps.MapsEventListener|null} */
+  #pickListener = null;
 
   // ── public API ────────────────────────────────────────────────────────────
 
@@ -140,6 +153,70 @@ export class MapController extends EventEmitter {
     }
   }
 
+  /**
+   * Geocodes an address string and returns {lat, lng}, or null on failure.
+   * @param {string} address
+   * @returns {Promise<{lat: number, lng: number}|null>}
+   */
+  async geocode(address) {
+    if (!this.#geocoder) return null;
+    return new Promise(resolve => {
+      this.#geocoder.geocode({ address }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK && results[0]) {
+          const loc = results[0].geometry.location;
+          resolve({ lat: loc.lat(), lng: loc.lng() });
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  /**
+   * Renders a planned route through the given waypoints.
+   * Returns a summary object { distanceKm, durationMin, legs }.
+   *
+   * @param {Array<{address: string, lat: number, lng: number}>} waypoints
+   * @returns {Promise<{distanceKm: number, durationMin: number, legs: object[]}>}
+   */
+  async renderPlannedRoute(waypoints) {
+    return this.#routeRenderer.render(waypoints);
+  }
+
+  /** Clears the planned route from the map. */
+  clearPlannedRoute() {
+    this.#routeRenderer?.clear();
+  }
+
+  /**
+   * Activates map-click mode so the user can pick a point for the route planner.
+   * Fires the `'map-pick'` event with `{ lat, lng }` on click, then auto-disables.
+   */
+  enablePickMode() {
+    if (this.#pickingMode) return;
+    this.#pickingMode = true;
+    if (this.#map) {
+      this.#map.setOptions({ draggableCursor: 'crosshair' });
+      this.#pickListener = this.#map.addListener('click', e => {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        this.disablePickMode();
+        this.emit('map-pick', { lat, lng });
+      });
+    }
+  }
+
+  /** Deactivates map-click pick mode. */
+  disablePickMode() {
+    if (!this.#pickingMode) return;
+    this.#pickingMode = false;
+    this.#map?.setOptions({ draggableCursor: '' });
+    if (this.#pickListener) {
+      google.maps.event.removeListener(this.#pickListener);
+      this.#pickListener = null;
+    }
+  }
+
   // ── private ──────────────────────────────────────────────────────────────
 
   async #onMapReady() {
@@ -161,6 +238,10 @@ export class MapController extends EventEmitter {
 
       const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
       this.#poiMarkers   = poiRenderer.renderAll(pois);
+
+      // Initialise route planner renderer and geocoder
+      this.#routeRenderer = new RouteRenderer(this.#map, this.#openInfoWindow);
+      this.#geocoder      = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();
     } catch (err) {

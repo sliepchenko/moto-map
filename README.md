@@ -399,7 +399,7 @@ Supported `type` values: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoin
 {
   "trips": [
     "trips/trip_22-02-26.json",
-    "trips/trip_18-03-26.json"
+    "trips/trip_15-03-26.json"
   ]
 }
 ```

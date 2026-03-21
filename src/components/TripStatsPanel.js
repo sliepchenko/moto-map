@@ -5,7 +5,6 @@
  * Displayed stats:
  *  - Distance   (straight-line Haversine estimate, in km)
  *  - Est. duration (distance / assumed avg speed of 50 km/h)
- *  - Waypoints  (total count from the trip data)
  *  - Date       (formatted, same locale as TripListComponent)
  *
  * Usage:
@@ -50,7 +49,6 @@ export class TripStatsPanel extends HTMLElement {
   #render(trip) {
     const distance  = estimateTripDistance(trip);
     const duration  = estimateTripDuration(trip);
-    const waypoints = trip.waypoints?.length ?? 0;
     const date      = new Date(trip.date).toLocaleDateString('en-GB', {
       day: 'numeric', month: 'short', year: 'numeric',
     });
@@ -65,7 +63,6 @@ export class TripStatsPanel extends HTMLElement {
         <ul class="stats-list">
           ${TripStatsPanel.#row('Distance',   `${distance.toFixed(1)} km`)}
           ${TripStatsPanel.#row('Est. time',  duration)}
-          ${TripStatsPanel.#row('Waypoints',  String(waypoints))}
           ${TripStatsPanel.#row('Date',       date)}
         </ul>
       </div>

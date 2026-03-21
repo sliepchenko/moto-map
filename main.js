@@ -19,6 +19,7 @@ import './src/components/TripListComponent.js';
 import './src/components/PoiListComponent.js';
 import './src/components/TripStatsPanel.js';
 import './src/components/AppSidebarComponent.js';
+import './src/components/RoutePlannerComponent.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -55,6 +56,19 @@ class App {
 
     // Wire sidebar poi-select events
     this.#sidebar.addEventListener('poi-select', e => this.#onPoiSelect(e));
+
+    // Wire route planner events (bubbled from <route-planner> inside the sidebar)
+    this.#sidebar.addEventListener('route-geocode',   e => this.#onRouteGeocode(e));
+    this.#sidebar.addEventListener('route-plan',      e => this.#onRoutePlan(e));
+    this.#sidebar.addEventListener('route-save',      e => this.#onRouteSave(e));
+    this.#sidebar.addEventListener('route-clear',     () => this.#onRouteClear());
+    this.#sidebar.addEventListener('route-pick-start',() => this.#map.enablePickMode());
+    this.#sidebar.addEventListener('route-pick-cancel',() => this.#map.disablePickMode());
+
+    // Wire map-pick event back to the route-planner component
+    this.#map.on('map-pick', ({ lat, lng }) => {
+      this.#sidebar.routePlanner?.addMapPoint(lat, lng);
+    });
   }
 
   // ── private handlers ─────────────────────────────────────────────────────
@@ -130,6 +144,100 @@ class App {
   #applyPoi(index) {
     this.#map.openPoi(index);
     this.#sidebar.poiList.setActive(index);
+  }
+
+  // ── route planner handlers ─────────────────────────────────────────────────
+
+  /**
+   * Geocodes a waypoint address and resolves the result back into the planner.
+   * @param {CustomEvent} e  — detail: { id: number, address: string }
+   */
+  async #onRouteGeocode({ detail: { id, address } }) {
+    const planner = this.#sidebar.routePlanner;
+    if (!planner) return;
+
+    planner.setStatus(`Searching "${address}"…`);
+    const coords = await this.#map.geocode(address);
+
+    if (coords) {
+      planner.resolveWaypoint(id, coords.lat, coords.lng);
+      planner.setStatus('');
+    } else {
+      planner.setStatus(`Could not find "${address}". Try a more specific address.`, true);
+    }
+  }
+
+  /**
+   * Renders the planned route on the map and shows a summary.
+   * @param {CustomEvent} e  — detail: { waypoints: [{address,lat,lng}] }
+   */
+  async #onRoutePlan({ detail: { waypoints } }) {
+    const planner = this.#sidebar.routePlanner;
+    if (!planner) return;
+
+    planner.setStatus('Calculating route…');
+
+    try {
+      const summary = await this.#map.renderPlannedRoute(waypoints);
+      const km      = summary.distanceKm.toFixed(1);
+      const mins    = Math.round(summary.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+      planner.setStatus(`Route: ${km} km · ${duration}`);
+      planner.setRouteSummary({
+        waypoints,
+        routePath:   summary.routePath,
+        distanceKm:  summary.distanceKm,
+        durationMin: summary.durationMin,
+      });
+    } catch (err) {
+      console.error('Route planning failed', err);
+      planner.setStatus('Failed to calculate route.', true);
+    }
+  }
+
+  /**
+   * Downloads the planned route as a trip JSON file.
+   * @param {CustomEvent} e  — detail: { waypoints, routePath, distanceKm, durationMin }
+   */
+  #onRouteSave({ detail: { waypoints, routePath, distanceKm, durationMin } }) {
+    // Build filename in the same format as existing trips: trip_DD-MM-YY.json
+    const now = new Date();
+    const dd  = String(now.getDate()).padStart(2, '0');
+    const mm  = String(now.getMonth() + 1).padStart(2, '0');
+    const yy  = String(now.getFullYear()).slice(-2);
+    const id  = `trip_${dd}-${mm}-${yy}`;
+
+    // Build the trip object matching the existing schema
+    const trip = {
+      id,
+      title: waypoints[0]?.address
+        ? `Ride from ${waypoints[0].address}`
+        : 'Planned ride',
+      date: now.toISOString().slice(0, 10),
+      waypoints: waypoints.map((wp, i) => ({
+        lat: wp.lat,
+        lng: wp.lng,
+        ...(i === 0 ? { isVisible: true } : {}),
+      })),
+    };
+
+    const json = JSON.stringify(trip, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Clears the planned route from the map. */
+  #onRouteClear() {
+    this.#map.clearPlannedRoute();
+    this.#map.disablePickMode();
   }
 }
 

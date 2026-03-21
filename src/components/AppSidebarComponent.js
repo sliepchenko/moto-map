@@ -1,18 +1,19 @@
 /**
- * `<app-sidebar>` — the full sidebar wrapper with two accordion sections
- * ("My Rides" and "My POI").
+ * `<app-sidebar>` — the full sidebar wrapper with three accordion sections
+ * ("My Rides", "My POI", and "Plan Route").
  *
  * Contains:
- *  - Two `<div class="accordion-section">` wrappers with `<button>` headers
+ *  - Three `<div class="accordion-section">` wrappers with `<button>` headers
  *    and `<div class="accordion-body">` panels.
- *  - Hosts `<trip-list>`, `<trip-stats-panel>` and `<poi-list>` custom
- *    elements inside those panels.
+ *  - Hosts `<trip-list>`, `<trip-stats-panel>`, `<poi-list>`, and
+ *    `<route-planner>` custom elements inside those panels.
  *
  * Public API:
  *  - `show()`                  — removes the `hidden` class.
- *  - `openSection(name)`       — opens 'rides' or 'poi' accordion section.
+ *  - `openSection(name)`       — opens 'rides', 'poi', or 'planner' accordion section.
  *  - `tripList` / `poiList`    — direct references to the child components.
  *  - `tripStats`               — direct reference to the stats panel.
+ *  - `routePlanner`            — direct reference to the route-planner component.
  *
  * SOLID notes:
  *  - SRP: manages sidebar structure and accordion behaviour only.
@@ -27,6 +28,8 @@ export class AppSidebarComponent extends HTMLElement {
   #poiList = null;
   /** @type {import('./TripStatsPanel.js').TripStatsPanel|null} */
   #tripStats = null;
+  /** @type {import('./RoutePlannerComponent.js').RoutePlannerComponent|null} */
+  #routePlanner = null;
 
   connectedCallback() {
     this.id = 'sidebar';
@@ -44,7 +47,7 @@ export class AppSidebarComponent extends HTMLElement {
 
   /**
    * Opens the accordion section named `name` and closes all others.
-   * @param {'rides'|'poi'} name
+   * @param {'rides'|'poi'|'planner'} name
    */
   openSection(name) {
     this.querySelectorAll('.accordion-section').forEach(section => {
@@ -60,6 +63,9 @@ export class AppSidebarComponent extends HTMLElement {
 
   /** @returns {import('./TripStatsPanel.js').TripStatsPanel} */
   get tripStats() { return this.#tripStats; }
+
+  /** @returns {import('./RoutePlannerComponent.js').RoutePlannerComponent} */
+  get routePlanner() { return this.#routePlanner; }
 
   // ── private ──────────────────────────────────────────────────────────────
 
@@ -85,11 +91,22 @@ export class AppSidebarComponent extends HTMLElement {
           <poi-list></poi-list>
         </div>
       </div>
+
+      <div class="accordion-section" data-section="planner">
+        <button class="accordion-header">
+          <span>Plan Route</span>
+          ${AppSidebarComponent.#arrowSvg()}
+        </button>
+        <div class="accordion-body">
+          <route-planner></route-planner>
+        </div>
+      </div>
     `;
 
-    this.#tripList  = this.querySelector('trip-list');
-    this.#tripStats = this.querySelector('trip-stats-panel');
-    this.#poiList   = this.querySelector('poi-list');
+    this.#tripList    = this.querySelector('trip-list');
+    this.#tripStats   = this.querySelector('trip-stats-panel');
+    this.#poiList     = this.querySelector('poi-list');
+    this.#routePlanner = this.querySelector('route-planner');
   }
 
   #bindAccordion() {
