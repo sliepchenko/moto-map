@@ -69,6 +69,9 @@ export class MapController extends EventEmitter {
    */
   #openInfoWindow = { current: null };
 
+  /** @type {boolean} Whether directional arrows are currently visible. */
+  #showRouteDirections = true;
+
   /** @type {RouteRenderer|null} */
   #routeRenderer = null;
 
@@ -189,7 +192,37 @@ export class MapController extends EventEmitter {
   }
 
   /**
-   * Activates map-click mode so the user can pick a point for the route planner.
+   * Shows or hides the directional arrow icons on all trip polylines.
+   * @param {boolean} enabled
+   */
+  setRouteDirections(enabled) {
+    this.#showRouteDirections = enabled;
+    this.#tripLayers.forEach(({ polyline }) => {
+      const existingIcons = polyline.get('icons');
+      const existingIcon  = existingIcons[0].icon;
+      polyline.setOptions({
+        icons: [{
+          icon: {
+            ...existingIcon,
+            fillOpacity:   enabled ? 0.9  : 0,
+            strokeOpacity: enabled ? 0.35 : 0,
+          },
+          offset: existingIcons[0].offset,
+          repeat: existingIcons[0].repeat,
+        }],
+      });
+    });
+  }
+
+  /**
+   * Shows or hides all POI markers on the map.
+   * @param {boolean} enabled
+   */
+  setPoiVisibility(enabled) {
+    this.#poiMarkers.forEach(marker => marker.setVisible(enabled));
+  }
+
+  /**
    * Fires the `'map-pick'` event with `{ lat, lng }` on click, then auto-disables.
    */
   enablePickMode() {
@@ -259,7 +292,10 @@ export class MapController extends EventEmitter {
       const weight      = isSelected && selectedId !== null ? 6 : 5;
       const scale       = isSelected && selectedId !== null ? 2.5 : 2;
       const repeat      = isSelected && selectedId !== null ? '20px' : '24px';
-      const arrowOpacity = isSelected ? 0.9 : 0.2;
+
+      // Respect the showRouteDirections setting: keep arrows hidden if disabled
+      const arrowFillOpacity   = this.#showRouteDirections ? (isSelected ? 0.9 : 0.2) : 0;
+      const arrowStrokeOpacity = this.#showRouteDirections ? (isSelected ? 0.35 : 0.1) : 0;
 
       // Update the solid base line
       if (basePolyline) {
@@ -277,8 +313,8 @@ export class MapController extends EventEmitter {
           icon: {
             ...existingIcon,
             scale,
-            fillOpacity:   arrowOpacity,
-            strokeOpacity: isSelected ? 0.35 : 0.1,
+            fillOpacity:   arrowFillOpacity,
+            strokeOpacity: arrowStrokeOpacity,
           },
           offset: '12px',
           repeat,

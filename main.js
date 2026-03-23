@@ -19,6 +19,7 @@ import './src/components/TripListComponent.js';
 import './src/components/PoiListComponent.js';
 import './src/components/AppSidebarComponent.js';
 import './src/components/RoutePlannerComponent.js';
+import './src/components/AppSettingsComponent.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -32,9 +33,9 @@ class App {
   /** @type {UrlStateManager} */       #urlState;
 
   constructor() {
-    this.#urlState = new UrlStateManager();
-    this.#sidebar  = document.querySelector('app-sidebar');
-    this.#map      = new MapController(
+    this.#urlState  = new UrlStateManager();
+    this.#sidebar   = document.querySelector('app-sidebar');
+    this.#map       = new MapController(
       GOOGLE_MAPS_API_KEY,
       document.getElementById('map'),
     );
@@ -68,6 +69,9 @@ class App {
     this.#map.on('map-pick', ({ lat, lng }) => {
       this.#sidebar.routePlanner?.addMapPoint(lat, lng);
     });
+
+    // Wire settings change events (bubbled from <app-settings> inside the sidebar)
+    this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
   }
 
   // ── private handlers ─────────────────────────────────────────────────────
@@ -79,6 +83,14 @@ class App {
     poiList.setPoiList(this.#map.pois);
 
     this.#sidebar.show();
+
+    // Apply persisted settings now that the map layers exist
+    const settings = this.#sidebar.querySelector('app-settings');
+    if (settings) {
+      const { showRouteDirections, showPoi } = settings.values;
+      if (!showRouteDirections) this.#map.setRouteDirections(false);
+      if (!showPoi) this.#map.setPoiVisibility(false);
+    }
 
     // Restore URL state on first load
     const tripId   = this.#urlState.getTripId();
@@ -229,6 +241,19 @@ class App {
   #onRouteClear() {
     this.#map.clearPlannedRoute();
     this.#map.disablePickMode();
+  }
+
+  /**
+   * Handles setting changes from the settings panel.
+   * @param {CustomEvent} e — detail: { key: string, value: any }
+   */
+  #onSettingChange({ detail: { key, value } }) {
+    if (key === 'showRouteDirections') {
+      this.#map.setRouteDirections(value);
+    }
+    if (key === 'showPoi') {
+      this.#map.setPoiVisibility(value);
+    }
   }
 }
 

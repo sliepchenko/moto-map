@@ -21,18 +21,23 @@
  *          element is expected.
  */
 export class AppSidebarComponent extends HTMLElement {
+  static #STORAGE_KEY = 'moto-map:accordion';
+
   /** @type {import('./TripListComponent.js').TripListComponent|null} */
   #tripList = null;
   /** @type {import('./PoiListComponent.js').PoiListComponent|null} */
   #poiList = null;
   /** @type {import('./RoutePlannerComponent.js').RoutePlannerComponent|null} */
   #routePlanner = null;
+  /** @type {import('./AppSettingsComponent.js').AppSettingsComponent|null} */
+  #settings = null;
 
   connectedCallback() {
     this.id = 'sidebar';
     this.classList.add('hidden');
     this.#buildDOM();
     this.#bindAccordion();
+    this.#restoreAccordion();
   }
 
   // ── public API ────────────────────────────────────────────────────────────
@@ -50,6 +55,7 @@ export class AppSidebarComponent extends HTMLElement {
     this.querySelectorAll('.accordion-section').forEach(section => {
       section.classList.toggle('open', section.dataset.section === name);
     });
+    this.#saveAccordion(name);
   }
 
   /** @returns {import('./TripListComponent.js').TripListComponent} */
@@ -60,6 +66,9 @@ export class AppSidebarComponent extends HTMLElement {
 
   /** @returns {import('./RoutePlannerComponent.js').RoutePlannerComponent} */
   get routePlanner() { return this.#routePlanner; }
+
+  /** @returns {import('./AppSettingsComponent.js').AppSettingsComponent} */
+  get settings() { return this.#settings; }
 
   // ── private ──────────────────────────────────────────────────────────────
 
@@ -94,11 +103,16 @@ export class AppSidebarComponent extends HTMLElement {
           <route-planner></route-planner>
         </div>
       </div>
+
+      <div class="sidebar-bottom">
+        <app-settings></app-settings>
+      </div>
     `;
 
     this.#tripList    = this.querySelector('trip-list');
     this.#poiList     = this.querySelector('poi-list');
     this.#routePlanner = this.querySelector('route-planner');
+    this.#settings    = this.querySelector('app-settings');
   }
 
   #bindAccordion() {
@@ -106,11 +120,36 @@ export class AppSidebarComponent extends HTMLElement {
       header.addEventListener('click', () => {
         const section = header.closest('.accordion-section');
         const wasOpen = section.classList.contains('open');
-        // Collapse all, then toggle the clicked one
+        // Collapse all
         this.querySelectorAll('.accordion-section').forEach(s => s.classList.remove('open'));
-        if (!wasOpen) section.classList.add('open');
+        // Toggle: if it was closed, open it; if it was open, leave all closed
+        const nextOpen = wasOpen ? null : section.dataset.section;
+        if (nextOpen) section.classList.add('open');
+        this.#saveAccordion(nextOpen);
       });
     });
+  }
+
+  #saveAccordion(openSection) {
+    try {
+      if (openSection) {
+        localStorage.setItem(AppSidebarComponent.#STORAGE_KEY, openSection);
+      } else {
+        localStorage.removeItem(AppSidebarComponent.#STORAGE_KEY);
+      }
+    } catch { /* ignore storage errors */ }
+  }
+
+  #restoreAccordion() {
+    try {
+      const stored = localStorage.getItem(AppSidebarComponent.#STORAGE_KEY);
+      if (stored) {
+        // Clear the default open state then open the stored section
+        this.querySelectorAll('.accordion-section').forEach(s => s.classList.remove('open'));
+        const target = this.querySelector(`.accordion-section[data-section="${stored}"]`);
+        if (target) target.classList.add('open');
+      }
+    } catch { /* ignore storage errors */ }
   }
 
   static #arrowSvg() {
