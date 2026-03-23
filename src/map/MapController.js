@@ -223,6 +223,19 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Enables or disables the terrain map type.
+   * When disabled, falls back to the default ROADMAP type.
+   * @param {boolean} enabled
+   */
+  setTerrainEnabled(enabled) {
+    this.#map.setMapTypeId(
+      enabled
+        ? google.maps.MapTypeId.TERRAIN
+        : google.maps.MapTypeId.ROADMAP,
+    );
+  }
+
+  /**
    * Fires the `'map-pick'` event with `{ lat, lng }` on click, then auto-disables.
    */
   enablePickMode() {

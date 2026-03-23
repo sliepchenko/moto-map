@@ -31,7 +31,7 @@ export class AppSettingsComponent extends HTMLElement {
   #settings = this.#loadSettings();
 
   #loadSettings() {
-    const defaults = { showRouteDirections: true, showPoi: true };
+    const defaults = { showRouteDirections: true, showPoi: true, showTerrain: true };
     try {
       const stored = localStorage.getItem(AppSettingsComponent.#STORAGE_KEY);
       if (stored) return { ...defaults, ...JSON.parse(stored) };
@@ -94,6 +94,22 @@ export class AppSettingsComponent extends HTMLElement {
               role="switch"
               aria-checked="${this.#settings.showPoi}"
               data-key="showPoi"
+            >
+              <span class="settings-toggle-thumb"></span>
+            </button>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-info">
+              <span class="settings-row-label">Terrain</span>
+              <span class="settings-row-desc">Show terrain map layer</span>
+            </div>
+            <button
+              id="toggle-showTerrain"
+              class="settings-toggle ${this.#settings.showTerrain ? 'on' : ''}"
+              role="switch"
+              aria-checked="${this.#settings.showTerrain}"
+              data-key="showTerrain"
             >
               <span class="settings-toggle-thumb"></span>
             </button>
