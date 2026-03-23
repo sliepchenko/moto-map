@@ -87,10 +87,11 @@ class App {
     // Apply persisted settings now that the map layers exist
     const settings = this.#sidebar.querySelector('app-settings');
     if (settings) {
-      const { showRouteDirections, showPoi, showTerrain } = settings.values;
+      const { showRouteDirections, showPoi, showTerrain, darkMap } = settings.values;
       if (!showRouteDirections) this.#map.setRouteDirections(false);
       if (!showPoi) this.#map.setPoiVisibility(false);
       if (!showTerrain) this.#map.setTerrainEnabled(false);
+      if (darkMap) this.#map.setDarkMap(true);
     }
 
     // Restore URL state on first load
@@ -257,6 +258,9 @@ class App {
     }
     if (key === 'showTerrain') {
       this.#map.setTerrainEnabled(value);
+    }
+    if (key === 'darkMap') {
+      this.#map.setDarkMap(value);
     }
   }
 }

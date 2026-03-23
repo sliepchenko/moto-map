@@ -236,6 +236,21 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Switches the map between dark and light theme styles.
+   * @param {boolean} dark
+   */
+  async setDarkMap(dark) {
+    try {
+      const url  = dark ? 'dark-theme.json' : 'theme.json';
+      const resp = await fetch(url);
+      const styles = resp.ok ? await resp.json() : [];
+      this.#map.setOptions({ styles });
+    } catch {
+      console.warn('MapController: failed to load map theme.');
+    }
+  }
+
+  /**
    * Fires the `'map-pick'` event with `{ lat, lng }` on click, then auto-disables.
    */
   enablePickMode() {
