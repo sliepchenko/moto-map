@@ -36,21 +36,50 @@ export class TripRenderer {
     const waypoints = trip.waypoints;
 
     const path = new google.maps.MVCArray();
-    const polyline = new google.maps.Polyline({
+
+    // Layer 1 — solid colored base line that gives the route its color.
+    const basePolyline = new google.maps.Polyline({
       map:           this.#map,
       path,
       geodesic:      true,
       strokeColor:   color,
       strokeOpacity: 1.0,
-      strokeWeight:  4,
+      strokeWeight:  5,
     });
 
-    // Build road-following route asynchronously; polyline updates live
+    // Layer 2 — transparent line carrying white arrow icons so direction is
+    // readable against the colored base regardless of the trip color.
+    const arrowSymbol = {
+      path:          google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale:         2,
+      fillColor:     '#ffffff',
+      fillOpacity:   0.9,
+      strokeColor:   '#000000',
+      strokeOpacity: 0.35,
+      strokeWeight:  1,
+    };
+
+    const polyline = new google.maps.Polyline({
+      map:           this.#map,
+      path,
+      geodesic:      true,
+      strokeColor:   color,
+      strokeOpacity: 0,
+      strokeWeight:  5,
+      icons: [{
+        icon:   arrowSymbol,
+        offset: '12px',
+        repeat: '24px',
+      }],
+    });
+
+    // Build road-following route asynchronously; both polylines share the
+    // same MVCArray path so they update together.
     this.#buildRoute(waypoints, path);
 
     const markers = this.#renderWaypoints(waypoints, color);
 
-    return { polyline, markers };
+    return { polyline, markers, _basePolyline: basePolyline };
   }
 
   // ── private ──────────────────────────────────────────────────────────────

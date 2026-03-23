@@ -56,7 +56,7 @@ export class MapController extends EventEmitter {
   /** @type {google.maps.Map|null} */ #map       = null;
   /** @type {Object[]} */             #trips     = [];
   /** @type {Object[]} */             #pois      = [];
-  /** @type {Map<string, { trip: Object, polyline: google.maps.Polyline, markers: google.maps.Marker[] }>} */
+  /** @type {Map<string, { trip: Object, polyline: google.maps.Polyline, basePolyline: google.maps.Polyline, markers: google.maps.Marker[] }>} */
   #tripLayers = new Map();
   /** @type {google.maps.Marker[]} */                        #poiMarkers    = [];
   /** @type {string|null} */                                 #activeId      = null;
@@ -232,8 +232,8 @@ export class MapController extends EventEmitter {
 
       const tripRenderer = new TripRenderer(this.#map, this.#openInfoWindow);
       trips.forEach(trip => {
-        const { polyline, markers } = tripRenderer.render(trip);
-        this.#tripLayers.set(trip.id, { trip, polyline, markers });
+        const { polyline, markers, _basePolyline } = tripRenderer.render(trip);
+        this.#tripLayers.set(trip.id, { trip, polyline, basePolyline: _basePolyline, markers });
       });
 
       const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
@@ -253,11 +253,36 @@ export class MapController extends EventEmitter {
 
   /** Dims unselected trips; bolds the selected one. */
   #applyHighlight(selectedId) {
-    this.#tripLayers.forEach(({ polyline }, id) => {
-      const isSelected = selectedId === null || id === selectedId;
+    this.#tripLayers.forEach(({ polyline, basePolyline }, id) => {
+      const isSelected  = selectedId === null || id === selectedId;
+      const lineOpacity = isSelected ? 1.0  : 0.15;
+      const weight      = isSelected && selectedId !== null ? 6 : 5;
+      const scale       = isSelected && selectedId !== null ? 2.5 : 2;
+      const repeat      = isSelected && selectedId !== null ? '20px' : '24px';
+      const arrowOpacity = isSelected ? 0.9 : 0.2;
+
+      // Update the solid base line
+      if (basePolyline) {
+        basePolyline.setOptions({
+          strokeOpacity: lineOpacity,
+          strokeWeight:  weight,
+        });
+      }
+
+      // Update the arrow overlay
+      const existingIcon = polyline.get('icons')[0].icon;
       polyline.setOptions({
-        strokeOpacity: isSelected ? 1.0 : 0.25,
-        strokeWeight:  isSelected && selectedId !== null ? 6 : 4,
+        strokeWeight: weight,
+        icons: [{
+          icon: {
+            ...existingIcon,
+            scale,
+            fillOpacity:   arrowOpacity,
+            strokeOpacity: isSelected ? 0.35 : 0.1,
+          },
+          offset: '12px',
+          repeat,
+        }],
       });
     });
   }

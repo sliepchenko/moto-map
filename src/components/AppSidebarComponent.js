@@ -5,14 +5,13 @@
  * Contains:
  *  - Three `<div class="accordion-section">` wrappers with `<button>` headers
  *    and `<div class="accordion-body">` panels.
- *  - Hosts `<trip-list>`, `<trip-stats-panel>`, `<poi-list>`, and
- *    `<route-planner>` custom elements inside those panels.
+ *  - Hosts `<trip-list>`, `<poi-list>`, and `<route-planner>` custom elements
+ *    inside those panels.
  *
  * Public API:
  *  - `show()`                  — removes the `hidden` class.
  *  - `openSection(name)`       — opens 'rides', 'poi', or 'planner' accordion section.
  *  - `tripList` / `poiList`    — direct references to the child components.
- *  - `tripStats`               — direct reference to the stats panel.
  *  - `routePlanner`            — direct reference to the route-planner component.
  *
  * SOLID notes:
@@ -26,8 +25,6 @@ export class AppSidebarComponent extends HTMLElement {
   #tripList = null;
   /** @type {import('./PoiListComponent.js').PoiListComponent|null} */
   #poiList = null;
-  /** @type {import('./TripStatsPanel.js').TripStatsPanel|null} */
-  #tripStats = null;
   /** @type {import('./RoutePlannerComponent.js').RoutePlannerComponent|null} */
   #routePlanner = null;
 
@@ -61,9 +58,6 @@ export class AppSidebarComponent extends HTMLElement {
   /** @returns {import('./PoiListComponent.js').PoiListComponent} */
   get poiList() { return this.#poiList; }
 
-  /** @returns {import('./TripStatsPanel.js').TripStatsPanel} */
-  get tripStats() { return this.#tripStats; }
-
   /** @returns {import('./RoutePlannerComponent.js').RoutePlannerComponent} */
   get routePlanner() { return this.#routePlanner; }
 
@@ -78,7 +72,6 @@ export class AppSidebarComponent extends HTMLElement {
         </button>
         <div class="accordion-body">
           <trip-list></trip-list>
-          <trip-stats-panel></trip-stats-panel>
         </div>
       </div>
 
@@ -104,7 +97,6 @@ export class AppSidebarComponent extends HTMLElement {
     `;
 
     this.#tripList    = this.querySelector('trip-list');
-    this.#tripStats   = this.querySelector('trip-stats-panel');
     this.#poiList     = this.querySelector('poi-list');
     this.#routePlanner = this.querySelector('route-planner');
   }

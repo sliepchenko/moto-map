@@ -1,7 +1,11 @@
-import { estimateTripDistance } from '../core/GeoUtils.js';
+import { estimateTripDistance, estimateTripDuration } from '../core/GeoUtils.js';
 
 /**
  * `<trip-list>` — renders the "My Rides" sidebar list.
+ *
+ * Each trip item expands an inline details panel directly beneath itself
+ * when clicked. Clicking the active trip collapses it; clicking a different
+ * trip collapses the previous one and expands the new one.
  *
  * Attributes / properties:
  *  - none (data is provided programmatically via `setTrips()`)
@@ -35,13 +39,19 @@ export class TripListComponent extends HTMLElement {
   }
 
   /**
-   * Updates the visually active trip without re-rendering the whole list.
+   * Updates the visually active trip and expands its inline details panel.
+   * Collapses any previously expanded panel.
    * @param {string|null} id
    */
   setActive(id) {
     this.#activeId = id;
     this.querySelectorAll('.trip-item').forEach(el => {
-      el.classList.toggle('active', el.dataset.tripId === id);
+      const isActive = el.dataset.tripId === id;
+      el.classList.toggle('active', isActive);
+      const details = el.querySelector('.trip-details');
+      if (details) {
+        details.classList.toggle('open', isActive);
+      }
     });
   }
 
@@ -66,22 +76,41 @@ export class TripListComponent extends HTMLElement {
 
   /** @param {Object} trip */
   #createItem(trip) {
-    const li   = document.createElement('li');
-    li.className        = 'trip-item';
-    li.dataset.tripId   = trip.id;
+    const li = document.createElement('li');
+    li.className      = 'trip-item';
+    li.dataset.tripId = trip.id;
 
     const date = new Date(trip.date).toLocaleDateString('en-GB', {
       day: 'numeric', month: 'short', year: 'numeric',
     });
 
     const distanceKm = estimateTripDistance(trip).toFixed(1);
+    const duration   = estimateTripDuration(trip);
 
     li.innerHTML = `
-      <span class="trip-title">${trip.title}</span>
-      <span class="trip-meta">
-        <span class="trip-date">${date}</span>
-        <span class="trip-distance">${distanceKm} km</span>
-      </span>
+      <div class="trip-summary">
+        <span class="trip-title">${trip.title}</span>
+        <span class="trip-meta">
+          <span class="trip-date">${date}</span>
+          <span class="trip-distance">${distanceKm} km</span>
+        </span>
+      </div>
+      <div class="trip-details">
+        <ul class="trip-details-list">
+          <li class="trip-details-row">
+            <span class="trip-details-label">Distance</span>
+            <span class="trip-details-value">${distanceKm} km</span>
+          </li>
+          <li class="trip-details-row">
+            <span class="trip-details-label">Est. time</span>
+            <span class="trip-details-value">${duration}</span>
+          </li>
+          <li class="trip-details-row">
+            <span class="trip-details-label">Date</span>
+            <span class="trip-details-value">${date}</span>
+          </li>
+        </ul>
+      </div>
     `;
 
     li.addEventListener('click', () => {
