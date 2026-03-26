@@ -4,7 +4,6 @@ import { MapLoader }           from './MapLoader.js';
 import { TripRenderer }        from './TripRenderer.js';
 import { PoiRenderer }         from './PoiRenderer.js';
 import { RouteRenderer }       from './RouteRenderer.js';
-import { NavigationRenderer }  from './NavigationRenderer.js';
 import { TripRepository }      from '../data/TripRepository.js';
 import { PoiRepository }       from '../data/PoiRepository.js';
 
@@ -79,9 +78,6 @@ export class MapController extends EventEmitter {
   /** @type {TripRenderer|null} */
   #tripRenderer = null;
 
-  /** @type {NavigationRenderer|null} */
-  #navRenderer = null;
-
   /** @type {google.maps.Geocoder|null} */
   #geocoder = null;
 
@@ -90,9 +86,6 @@ export class MapController extends EventEmitter {
 
   /** @type {google.maps.MapsEventListener|null} */
   #pickListener = null;
-
-  /** Whether the map should auto-pan to follow the live GPS position. */
-  #followPosition = false;
 
   // ── public API ────────────────────────────────────────────────────────────
 
@@ -290,63 +283,6 @@ export class MapController extends EventEmitter {
     }
   }
 
-  // ── Navigation ────────────────────────────────────────────────────────────
-
-  /**
-   * Draws a navigation route on the map (cyan polyline + destination pin).
-   *
-   * @param {Array<{lat: number, lng: number}>} path
-   * @param {{ lat: number, lng: number }}      destination
-   */
-  drawNavigationRoute(path, destination) {
-    this.#navRenderer?.drawRoute(path, destination);
-
-    // Fit viewport to the route
-    const bounds = new google.maps.LatLngBounds();
-    path.forEach(p => bounds.extend(p));
-    this.#map.fitBounds(bounds);
-  }
-
-  /**
-   * Updates the live GPS position dot and optionally pans the map to follow.
-   *
-   * @param {{ lat: number, lng: number, accuracy: number }} position
-   */
-  updateNavigationPosition(position) {
-    this.#navRenderer?.updatePosition(position);
-    if (this.#followPosition) {
-      this.#map.panTo({ lat: position.lat, lng: position.lng });
-    }
-  }
-
-  /**
-   * Pans the map to the given position and briefly raises the zoom level so
-   * the rider can see where they are (re-center button behaviour).
-   *
-   * @param {{ lat: number, lng: number }} position
-   */
-  recenterOnPosition(position) {
-    this.#followPosition = true;
-    this.#map.panTo({ lat: position.lat, lng: position.lng });
-    if (this.#map.getZoom() < 15) {
-      this.#map.setZoom(15);
-    }
-  }
-
-  /**
-   * Enables or disables auto-follow (map pans with every GPS update).
-   * @param {boolean} follow
-   */
-  setFollowPosition(follow) {
-    this.#followPosition = follow;
-  }
-
-  /** Clears all navigation map objects (polyline, position dot, dest pin). */
-  clearNavigation() {
-    this.#navRenderer?.clear();
-    this.#followPosition = false;
-  }
-
   // ── private ──────────────────────────────────────────────────────────────
 
   async #onMapReady() {
@@ -370,9 +306,8 @@ export class MapController extends EventEmitter {
       const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
       this.#poiMarkers   = poiRenderer.renderAll(pois);
 
-      // Initialise route planner renderer, navigation renderer, and geocoder
+      // Initialise route planner renderer and geocoder
       this.#routeRenderer = new RouteRenderer(this.#map, this.#openInfoWindow);
-      this.#navRenderer   = new NavigationRenderer(this.#map);
       this.#geocoder      = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();
