@@ -58,20 +58,83 @@ class App {
     this.#sidebar.addEventListener('poi-select', e => this.#onPoiSelect(e));
 
     // Wire route planner events (bubbled from <route-planner> inside the sidebar)
-    this.#sidebar.addEventListener('route-geocode',   e => this.#onRouteGeocode(e));
-    this.#sidebar.addEventListener('route-plan',      e => this.#onRoutePlan(e));
-    this.#sidebar.addEventListener('route-save',      e => this.#onRouteSave(e));
-    this.#sidebar.addEventListener('route-clear',     () => this.#onRouteClear());
-    this.#sidebar.addEventListener('route-pick-start',() => this.#map.enablePickMode());
-    this.#sidebar.addEventListener('route-pick-cancel',() => this.#map.disablePickMode());
+    this.#sidebar.addEventListener('route-geocode',     e => this.#onRouteGeocode(e));
+    this.#sidebar.addEventListener('route-plan',        e => this.#onRoutePlan(e));
+    this.#sidebar.addEventListener('route-save',        e => this.#onRouteSave(e));
+    this.#sidebar.addEventListener('route-clear',       () => this.#onRouteClear());
+    this.#sidebar.addEventListener('route-pick-start',  () => this.#map.enablePickMode());
+    this.#sidebar.addEventListener('route-pick-cancel', () => this.#map.disablePickMode());
 
     // Wire map-pick event back to route planner
     this.#map.on('map-pick', ({ lat, lng }) => {
       this.#sidebar.routePlanner?.addMapPoint(lat, lng);
     });
 
+    // Wire route polyline double-click → insert a new stop at the clicked position
+    // and immediately recalculate the route so the new marker appears and is draggable.
+    this.#map.setRouteDoubleClickHandler(async (lat, lng, segmentIndex) => {
+      const planner = this.#sidebar.routePlanner;
+      if (!planner) return;
+      planner.insertMapPoint(lat, lng, segmentIndex + 1);
+      await this.#recalculateRoute(planner);
+    });
+
+    // Wire route marker drag → move the stop to the new position and recalculate the route
+    this.#map.setMarkerDragHandler(async (index, lat, lng) => {
+      const planner = this.#sidebar.routePlanner;
+      if (!planner) return;
+      planner.updateWaypointPosition(index, lat, lng);
+      await this.#recalculateRoute(planner);
+    });
+
     // Wire settings change events (bubbled from <app-settings> inside the sidebar)
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
+  }
+
+  // ── private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Re-renders the planned route using the planner's current resolved waypoints,
+   * then updates the status bar, route summary, and fuel-station overlay.
+   * Used after any in-place edit (double-click insert, marker drag).
+   *
+   * @param {RoutePlannerComponent} planner
+   */
+  async #recalculateRoute(planner) {
+    const waypoints = planner.resolvedWaypoints;
+    if (waypoints.length < 2) return;
+    planner.setStatus('Recalculating route…');
+    try {
+      const summary = await this.#map.renderPlannedRoute(
+        waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })),
+        {
+          avoidHighways: planner.avoidHighways,
+          avoidTolls:    planner.avoidTolls,
+          avoidFerries:  planner.avoidFerries,
+        },
+      );
+      const km      = summary.distanceKm.toFixed(1);
+      const mins    = Math.round(summary.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+      planner.setStatus(`Route: ${km} km · ${duration}`);
+      planner.setRouteSummary({
+        waypoints:   waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })),
+        routePath:   summary.routePath,
+        distanceKm:  summary.distanceKm,
+        durationMin: summary.durationMin,
+      });
+      try {
+        const count = await this.#map.showFuelStations(summary.routePath);
+        if (count > 0) {
+          planner.setStatus(`Route: ${km} km · ${duration} · ${count} fuel station${count === 1 ? '' : 's'}`);
+        }
+      } catch { /* non-critical */ }
+    } catch (err) {
+      console.error('Route recalculation failed', err);
+      planner.setStatus('Failed to recalculate route.', true);
+    }
   }
 
   // ── private handlers ─────────────────────────────────────────────────────
@@ -199,6 +262,16 @@ class App {
         distanceKm:  summary.distanceKm,
         durationMin: summary.durationMin,
       });
+
+      // Automatically show fuel stations along the route without requiring a button press.
+      try {
+        const count = await this.#map.showFuelStations(summary.routePath);
+        if (count > 0) {
+          planner.setStatus(`Route: ${km} km · ${duration} · ${count} fuel station${count === 1 ? '' : 's'}`);
+        }
+      } catch {
+        // Fuel station search failing is non-critical — route is still shown.
+      }
     } catch (err) {
       console.error('Route planning failed', err);
       planner.setStatus('Failed to calculate route.', true);
@@ -253,6 +326,7 @@ class App {
   /** Clears the planned route from the map. */
   #onRouteClear() {
     this.#map.clearPlannedRoute();
+    this.#map.clearFuelStations();
     this.#map.disablePickMode();
   }
 

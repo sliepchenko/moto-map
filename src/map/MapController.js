@@ -4,6 +4,7 @@ import { MapLoader }           from './MapLoader.js';
 import { TripRenderer }        from './TripRenderer.js';
 import { PoiRenderer }         from './PoiRenderer.js';
 import { RouteRenderer }       from './RouteRenderer.js';
+import { FuelStationRenderer } from './FuelStationRenderer.js';
 import { TripRepository }      from '../data/TripRepository.js';
 import { PoiRepository }       from '../data/PoiRepository.js';
 
@@ -75,6 +76,9 @@ export class MapController extends EventEmitter {
   /** @type {RouteRenderer|null} */
   #routeRenderer = null;
 
+  /** @type {FuelStationRenderer|null} */
+  #fuelRenderer = null;
+
   /** @type {TripRenderer|null} */
   #tripRenderer = null;
 
@@ -86,6 +90,12 @@ export class MapController extends EventEmitter {
 
   /** @type {google.maps.MapsEventListener|null} */
   #pickListener = null;
+
+  /** @type {Function|null} Stored until #routeRenderer is ready. */
+  #pendingDblClickHandler = null;
+
+  /** @type {Function|null} Stored until #routeRenderer is ready. */
+  #pendingMarkerDragHandler = null;
 
   // ── public API ────────────────────────────────────────────────────────────
 
@@ -179,6 +189,28 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Registers a callback invoked when the user double-clicks the planned route polyline.
+   * The callback receives `(lat: number, lng: number, segmentIndex: number)`.
+   *
+   * @param {((lat: number, lng: number, segmentIndex: number) => void)|null} fn
+   */
+  setRouteDoubleClickHandler(fn) {
+    this.#pendingDblClickHandler = fn;
+    this.#routeRenderer?.setDoubleClickHandler(fn);
+  }
+
+  /**
+   * Registers a callback invoked when the user finishes dragging a stop marker.
+   * The callback receives `(index: number, lat: number, lng: number)`.
+   *
+   * @param {((index: number, lat: number, lng: number) => void)|null} fn
+   */
+  setMarkerDragHandler(fn) {
+    this.#pendingMarkerDragHandler = fn;
+    this.#routeRenderer?.setMarkerDragHandler(fn);
+  }
+
+  /**
    * Renders a planned route through the given waypoints.
    * Returns a summary object { distanceKm, durationMin, legs }.
    *
@@ -194,6 +226,24 @@ export class MapController extends EventEmitter {
   /** Clears the planned route from the map. */
   clearPlannedRoute() {
     this.#routeRenderer?.clear();
+  }
+
+  /**
+   * Searches for fuel stations along `routePath` and renders their markers.
+   * Clears any previously shown fuel station markers first.
+   *
+   * @param {Array<{lat: number, lng: number}>} routePath
+   *   Dense path array from the last route summary.
+   * @returns {Promise<number>}  Number of unique stations found.
+   */
+  async showFuelStations(routePath) {
+    if (!this.#fuelRenderer) return 0;
+    return this.#fuelRenderer.render(routePath);
+  }
+
+  /** Removes all fuel station markers from the map. */
+  clearFuelStations() {
+    this.#fuelRenderer?.clear();
   }
 
   /**
@@ -306,8 +356,15 @@ export class MapController extends EventEmitter {
       const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
       this.#poiMarkers   = poiRenderer.renderAll(pois);
 
-      // Initialise route planner renderer and geocoder
+      // Initialise route planner renderer, fuel station renderer, and geocoder
       this.#routeRenderer = new RouteRenderer(this.#map, this.#openInfoWindow);
+      if (this.#pendingDblClickHandler) {
+        this.#routeRenderer.setDoubleClickHandler(this.#pendingDblClickHandler);
+      }
+      if (this.#pendingMarkerDragHandler) {
+        this.#routeRenderer.setMarkerDragHandler(this.#pendingMarkerDragHandler);
+      }
+      this.#fuelRenderer  = new FuelStationRenderer(this.#map, this.#openInfoWindow);
       this.#geocoder      = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();

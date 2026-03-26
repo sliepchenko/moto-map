@@ -10,10 +10,10 @@
  *  6. Press "Clear" to reset the planner.
  *
  * Fires custom events (bubble up to the sidebar):
- *  - `route-plan`   { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
- *  - `route-save`   { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
- *  - `route-clear`                                       — when the user clears
- *  - `route-pick-start`                                  — ask map for a click-to-add-waypoint mode
+ *  - `route-plan`         { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
+ *  - `route-save`         { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
+ *  - `route-clear`                                                — when the user clears
+ *  - `route-pick-start`                                           — ask map for a click-to-add-waypoint mode
  *
  * SOLID notes:
  *  - SRP: manages only the planner UI; no map calls, no routing calls.
@@ -29,6 +29,8 @@ export class RoutePlannerComponent extends HTMLElement {
   #statusEl = null;
   /** @type {boolean} */
   #pickingMode = false;
+  /** @type {number|null} id of the waypoint currently being dragged */
+  #dragId = null;
   /**
    * Stored after a successful "Get Directions" call so "Save Route" can use it.
    * @type {{ waypoints: object[], routePath: object[], distanceKm: number, durationMin: number }|null}
@@ -55,6 +57,39 @@ export class RoutePlannerComponent extends HTMLElement {
   addMapPoint(lat, lng, label = '') {
     this.#addWaypoint(label || `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng);
     this.#setPickingMode(false);
+    this.#render();
+  }
+
+  /**
+   * Inserts a new stop at `index` in the waypoints list (from a route double-click).
+   * @param {number} lat
+   * @param {number} lng
+   * @param {number} index  0-based insertion index
+   */
+  insertMapPoint(lat, lng, index) {
+    if (this.#waypoints.length >= 10) {
+      this.setStatus('Maximum 10 stops reached.', true);
+      return;
+    }
+    const wp = { id: this.#nextId++, address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng };
+    this.#waypoints.splice(index, 0, wp);
+    this.#render();
+  }
+
+  /**
+   * Updates the lat/lng of a waypoint by its list index (from a map marker drag).
+   * Also updates the address label to the new coordinates.
+   * @param {number} index  0-based index in the resolved waypoints list
+   * @param {number} lat
+   * @param {number} lng
+   */
+  updateWaypointPosition(index, lat, lng) {
+    const resolved = this.resolvedWaypoints;
+    const wp = resolved[index];
+    if (!wp) return;
+    wp.lat     = lat;
+    wp.lng     = lng;
+    wp.address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     this.#render();
   }
 
@@ -95,6 +130,13 @@ export class RoutePlannerComponent extends HTMLElement {
   get resolvedWaypoints() {
     return this.#waypoints.filter(w => w.lat !== null && w.lng !== null);
   }
+
+  /** @returns {boolean} */
+  get avoidHighways() { return this.#avoidHighways; }
+  /** @returns {boolean} */
+  get avoidTolls()    { return this.#avoidTolls; }
+  /** @returns {boolean} */
+  get avoidFerries()  { return this.#avoidFerries; }
 
   // ── private ──────────────────────────────────────────────────────────────
 
@@ -219,7 +261,8 @@ export class RoutePlannerComponent extends HTMLElement {
     if (goBtn) goBtn.disabled = resolved.length < 2;
 
     this.#list.innerHTML = this.#waypoints.map((wp, i) => `
-      <div class="rp-wp-row" data-id="${wp.id}">
+      <div class="rp-wp-row" data-id="${wp.id}" draggable="true">
+        <span class="rp-wp-handle" title="Drag to reorder">⠿</span>
         <span class="rp-wp-index">${i + 1}</span>
         <span class="rp-wp-label ${wp.lat !== null ? 'resolved' : 'pending'}" title="${wp.address}">
           ${wp.address}
@@ -239,6 +282,54 @@ export class RoutePlannerComponent extends HTMLElement {
       btn.addEventListener('click', () => this.#moveWaypoint(+btn.dataset.id, +1)));
     this.#list.querySelectorAll('.rp-wp-remove').forEach(btn =>
       btn.addEventListener('click', () => this.#removeWaypoint(+btn.dataset.id)));
+
+    // Bind drag-and-drop handlers
+    this.#list.querySelectorAll('.rp-wp-row').forEach(row => {
+      row.addEventListener('dragstart', e => this.#onDragStart(e, +row.dataset.id));
+      row.addEventListener('dragover',  e => this.#onDragOver(e, +row.dataset.id));
+      row.addEventListener('dragend',   () => this.#onDragEnd());
+      row.addEventListener('drop',      e => e.preventDefault());
+    });
+  }
+
+  /** @param {DragEvent} e @param {number} id */
+  #onDragStart(e, id) {
+    this.#dragId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    // Slight delay so the browser renders the drag ghost before we add the dimming class
+    requestAnimationFrame(() => {
+      const row = this.#list?.querySelector(`[data-id="${id}"]`);
+      if (row) row.classList.add('rp-wp-dragging');
+    });
+  }
+
+  /** @param {DragEvent} e @param {number} overId */
+  #onDragOver(e, overId) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (this.#dragId === null || this.#dragId === overId) return;
+
+    const fromIdx = this.#waypoints.findIndex(w => w.id === this.#dragId);
+    const toIdx   = this.#waypoints.findIndex(w => w.id === overId);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    // Reorder the array live while dragging
+    const updated = [...this.#waypoints];
+    const [item]  = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, item);
+    this.#waypoints = updated;
+    this.#render();
+
+    // Restore dragging state on the relocated row (render cleared it)
+    requestAnimationFrame(() => {
+      const row = this.#list?.querySelector(`[data-id="${this.#dragId}"]`);
+      if (row) row.classList.add('rp-wp-dragging');
+    });
+  }
+
+  #onDragEnd() {
+    this.#dragId = null;
+    this.#list?.querySelectorAll('.rp-wp-dragging').forEach(r => r.classList.remove('rp-wp-dragging'));
   }
 
   #onAddClick() {
