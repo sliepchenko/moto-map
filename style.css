@@ -664,6 +664,118 @@ route-planner {
   opacity: 1;
 }
 
+/* ── Alternative routes panel ────────────────────────────────────────────── */
+
+.rp-alternatives {
+  padding: 6px 16px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.rp-alt-header {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+
+.rp-alt-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  line-height: 1.4;
+}
+
+.rp-alt-card:last-child {
+  margin-bottom: 0;
+}
+
+.rp-alt-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #d1d5db;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.rp-alt-card.active {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #e5e7eb;
+}
+
+.rp-alt-card.active:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Colour swatch — small circle matching the map polyline colour */
+.rp-alt-swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.rp-alt-card.active .rp-alt-swatch {
+  opacity: 1;
+}
+
+.rp-alt-label {
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rp-alt-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.rp-alt-stat {
+  white-space: nowrap;
+}
+
+.rp-alt-sep {
+  opacity: 0.45;
+}
+
+.rp-alt-toll {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.rp-alt-card.active .rp-alt-toll {
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.15);
+  border-color: rgba(252, 211, 77, 0.4);
+}
+
 /* ── Settings button & panel ─────────────────────────────────────────────── */
 
 /* Wrapper that sticks to the bottom of the sidebar */

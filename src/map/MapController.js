@@ -97,6 +97,9 @@ export class MapController extends EventEmitter {
   /** @type {Function|null} Stored until #routeRenderer is ready. */
   #pendingMarkerDragHandler = null;
 
+  /** @type {Function|null} Stored until #routeRenderer is ready. */
+  #pendingAltPolylineClickHandler = null;
+
   // ── public API ────────────────────────────────────────────────────────────
 
   /** The underlying `google.maps.Map` instance (available after `'load'`). */
@@ -211,16 +214,41 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Registers a callback invoked when the user clicks an alternative route
+   * polyline on the map.  The callback receives `(index: number)`.
+   *
+   * @param {((index: number) => void)|null} fn
+   */
+  setAltPolylineClickHandler(fn) {
+    this.#pendingAltPolylineClickHandler = fn;
+    this.#routeRenderer?.setAltPolylineClickHandler(fn);
+  }
+
+  /**
    * Renders a planned route through the given waypoints.
-   * Returns a summary object { distanceKm, durationMin, legs }.
+   *
+   * For a two-stop route, up to 3 alternative routes are requested and drawn
+   * on the map simultaneously.  The returned array has one entry per available
+   * route (index 0 = active / primary route).
    *
    * @param {Array<{address: string, lat: number, lng: number}>} waypoints
    * @param {{ avoidHighways?: boolean, avoidTolls?: boolean, avoidFerries?: boolean }} [avoidOptions]
-   * @returns {Promise<{distanceKm: number, durationMin: number, legs: object[]}>}
+   * @returns {Promise<Array<{distanceKm: number, durationMin: number, legs: object[], routePath: object[], hasTolls: boolean}>>}
    */
   async renderPlannedRoute(waypoints, avoidOptions = {}) {
     this.#routeRenderer.setAvoidOptions(avoidOptions);
     return this.#routeRenderer.render(waypoints);
+  }
+
+  /**
+   * Switches the displayed active route to the given alternative index
+   * (0 = primary, 1 = first alternative, 2 = second alternative).
+   * Does NOT re-fetch directions; only redraws polylines.
+   *
+   * @param {number} index
+   */
+  selectAlternativeRoute(index) {
+    this.#routeRenderer?.selectAlternative(index);
   }
 
   /** Clears the planned route from the map. */
@@ -363,6 +391,9 @@ export class MapController extends EventEmitter {
       }
       if (this.#pendingMarkerDragHandler) {
         this.#routeRenderer.setMarkerDragHandler(this.#pendingMarkerDragHandler);
+      }
+      if (this.#pendingAltPolylineClickHandler) {
+        this.#routeRenderer.setAltPolylineClickHandler(this.#pendingAltPolylineClickHandler);
       }
       this.#fuelRenderer  = new FuelStationRenderer(this.#map, this.#openInfoWindow);
       this.#geocoder      = new google.maps.Geocoder();

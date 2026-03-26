@@ -6,14 +6,17 @@
  *  2. Reorder waypoints via drag-and-drop (or up/down buttons).
  *  3. Remove individual waypoints.
  *  4. Press "Get Directions" to request a road-following route.
- *  5. Press "Save Route" to download the planned route as a trip JSON file.
- *  6. Press "Open in Google Maps" to open the route in Google Maps.
- *  7. Press "Clear" to reset the planner.
+ *  5. Pick from up to 3 alternative routes shown as selectable cards, each
+ *     with a colour swatch matching the polyline on the map.
+ *  6. Press "Save Route" to download the planned route as a trip JSON file.
+ *  7. Press "Open in Google Maps" to open the route in Google Maps.
+ *  8. Press "Clear" to reset the planner.
  *
  * Fires custom events (bubble up to the sidebar):
- *  - `route-plan`         { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
- *  - `route-save`         { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
- *  - `route-export-gmaps` { waypoints: [{address,lat,lng}] }     — open route in Google Maps
+ *  - `route-plan`              { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
+ *  - `route-alternative-select`{ index: number }                 — when the user picks an alternative
+ *  - `route-save`              { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
+ *  - `route-export-gmaps`      { waypoints: [{address,lat,lng}] }     — open route in Google Maps
  *  - `route-clear`                                                — when the user clears
  *  - `route-pick-start`                                           — ask map for a click-to-add-waypoint mode
  *
@@ -35,9 +38,19 @@ export class RoutePlannerComponent extends HTMLElement {
   #dragId = null;
   /**
    * Stored after a successful "Get Directions" call so "Save Route" can use it.
+   * Always reflects the currently *selected* alternative (index #activeAltIndex).
    * @type {{ waypoints: object[], routePath: object[], distanceKm: number, durationMin: number }|null}
    */
   #lastRouteSummary = null;
+
+  /**
+   * All route alternative summaries from the last render call.
+   * @type {Array<{distanceKm: number, durationMin: number, legs: object[], routePath: object[], hasTolls: boolean}>}
+   */
+  #allSummaries = [];
+
+  /** 0-based index of the selected alternative (matches what the map is showing). */
+  #activeAltIndex = 0;
 
   // ── avoidance options ──────────────────────────────────────────────────────
   /** @type {boolean} */ #avoidHighways = false;
@@ -113,7 +126,9 @@ export class RoutePlannerComponent extends HTMLElement {
 
   /**
    * Called by the orchestrator after a successful route calculation.
-   * Enables the "Save Route" button.
+   * Stores the summary for the active route and enables Save/GMaps buttons.
+   * For multiple alternatives, prefer calling `setRouteSummaries()` instead.
+   *
    * @param {{ waypoints: object[], routePath: object[], distanceKm: number, durationMin: number }} summary
    */
   setRouteSummary(summary) {
@@ -128,6 +143,73 @@ export class RoutePlannerComponent extends HTMLElement {
     if (saveBtn) saveBtn.disabled = false;
     const gmapsBtn = this.querySelector('#rp-gmaps-btn');
     if (gmapsBtn) gmapsBtn.disabled = false;
+  }
+
+  /**
+   * Called by the orchestrator when route alternatives are available.
+   * Renders a selectable card list in the panel and enables Save/GMaps.
+   *
+   * @param {Array<{distanceKm: number, durationMin: number, legs: object[], routePath: object[], hasTolls: boolean, color?: string}>} summaries
+   * @param {Array<{address: string, lat: number, lng: number}>} waypoints   resolved waypoint list
+   * @param {number} [activeIndex=0]   which summary is currently shown on the map
+   */
+  setRouteSummaries(summaries, waypoints, activeIndex = 0) {
+    this.#allSummaries   = summaries;
+    this.#activeAltIndex = activeIndex;
+
+    // Always keep #lastRouteSummary in sync with the active summary
+    const active = summaries[activeIndex];
+    if (active) {
+      this.#lastRouteSummary = {
+        waypoints,
+        routePath:    active.routePath,
+        distanceKm:   active.distanceKm,
+        durationMin:  active.durationMin,
+        avoidHighways: this.#avoidHighways,
+        avoidTolls:    this.#avoidTolls,
+        avoidFerries:  this.#avoidFerries,
+      };
+    }
+
+    this.#renderAlternatives(waypoints);
+
+    const saveBtn  = this.querySelector('#rp-save-btn');
+    if (saveBtn) saveBtn.disabled = false;
+    const gmapsBtn = this.querySelector('#rp-gmaps-btn');
+    if (gmapsBtn) gmapsBtn.disabled = false;
+  }
+
+  /**
+   * Selects an alternative card by index without emitting `route-alternative-select`.
+   * Used when the map polyline is clicked directly so we only sync the UI.
+   *
+   * @param {number} index
+   */
+  selectAltCard(index) {
+    if (index < 0 || index >= this.#allSummaries.length) return;
+    if (index === this.#activeAltIndex) return;
+
+    this.#activeAltIndex = index;
+    const active = this.#allSummaries[index];
+    if (active) {
+      this.#lastRouteSummary = {
+        ...(this.#lastRouteSummary ?? {}),
+        routePath:   active.routePath,
+        distanceKm:  active.distanceKm,
+        durationMin: active.durationMin,
+      };
+      const km      = active.distanceKm.toFixed(1);
+      const mins    = Math.round(active.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const dur     = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+      this.setStatus(`Route ${index + 1}: ${km} km · ${dur}`);
+    }
+
+    // Refresh card highlights only
+    this.querySelectorAll('.rp-alt-card').forEach((card, i) => {
+      card.classList.toggle('active', i === index);
+    });
   }
 
   /** Returns the waypoints that have been geocoded (lat/lng resolved). */
@@ -394,11 +476,16 @@ export class RoutePlannerComponent extends HTMLElement {
   }
 
   #onClearClick() {
-    this.#waypoints = [];
+    this.#waypoints       = [];
     this.#lastRouteSummary = null;
+    this.#allSummaries    = [];
+    this.#activeAltIndex  = 0;
     this.#setPickingMode(false);
     this.setStatus('');
     this.#render();
+    // Clear the alternatives panel if visible
+    const altEl = this.querySelector('#rp-alternatives');
+    if (altEl) altEl.remove();
     const saveBtn  = this.querySelector('#rp-save-btn');
     if (saveBtn) saveBtn.disabled = true;
     const gmapsBtn = this.querySelector('#rp-gmaps-btn');
@@ -445,6 +532,118 @@ export class RoutePlannerComponent extends HTMLElement {
       bubbles: true,
       composed: true,
       detail: { id, address },
+    }));
+  }
+
+  // ── alternatives panel ────────────────────────────────────────────────────
+
+  /**
+   * Renders (or updates) the alternatives picker panel below the actions row.
+   * Each card shows a colour swatch matching the map polyline, distance,
+   * duration, and a toll badge when applicable.
+   * If only one summary exists the panel is removed (nothing to compare).
+   *
+   * @param {Array<{address: string, lat: number, lng: number}>} waypoints
+   */
+  #renderAlternatives(waypoints) {
+    // Remove existing panel first
+    const existing = this.querySelector('#rp-alternatives');
+    if (existing) existing.remove();
+
+    if (this.#allSummaries.length <= 1) return;
+
+    const container = this.querySelector('.rp-container');
+    if (!container) return;
+
+    const panel = document.createElement('div');
+    panel.id        = 'rp-alternatives';
+    panel.className = 'rp-alternatives';
+
+    const header = document.createElement('div');
+    header.className   = 'rp-alt-header';
+    header.textContent = `${this.#allSummaries.length} routes found — pick one`;
+    panel.appendChild(header);
+
+    this.#allSummaries.forEach((s, i) => {
+      const mins    = Math.round(s.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+      const km       = s.distanceKm.toFixed(1);
+      const color    = s.color ?? '#3b82f6';
+
+      const card = document.createElement('button');
+      card.className   = `rp-alt-card${i === this.#activeAltIndex ? ' active' : ''}`;
+      card.type        = 'button';
+      card.dataset.idx = String(i);
+
+      card.innerHTML = `
+        <span class="rp-alt-swatch" style="background:${color};box-shadow:0 0 0 1px ${color}44;"></span>
+        <span class="rp-alt-label">Route ${i + 1}</span>
+        <span class="rp-alt-stats">
+          <span class="rp-alt-stat rp-alt-dist">${km} km</span>
+          <span class="rp-alt-sep">·</span>
+          <span class="rp-alt-stat rp-alt-dur">${duration}</span>
+          ${s.hasTolls
+            ? '<span class="rp-alt-sep">·</span><span class="rp-alt-toll" title="Includes toll roads">Tolls</span>'
+            : ''}
+        </span>
+      `;
+
+      card.addEventListener('click', () => this.#onAltCardClick(i, waypoints));
+      panel.appendChild(card);
+    });
+
+    // Insert after .rp-actions
+    const actions = container.querySelector('.rp-actions');
+    if (actions) {
+      actions.after(panel);
+    } else {
+      container.appendChild(panel);
+    }
+  }
+
+  /**
+   * Called when the user clicks an alternative route card.
+   * Updates the active card styling, syncs #lastRouteSummary, and emits the
+   * selection event so the orchestrator can call `map.selectAlternativeRoute()`.
+   *
+   * @param {number} index
+   * @param {Array<{address: string, lat: number, lng: number}>} waypoints
+   */
+  #onAltCardClick(index, waypoints) {
+    if (index === this.#activeAltIndex) return;
+
+    this.#activeAltIndex = index;
+    const active = this.#allSummaries[index];
+    if (active) {
+      this.#lastRouteSummary = {
+        waypoints,
+        routePath:    active.routePath,
+        distanceKm:   active.distanceKm,
+        durationMin:  active.durationMin,
+        avoidHighways: this.#avoidHighways,
+        avoidTolls:    this.#avoidTolls,
+        avoidFerries:  this.#avoidFerries,
+      };
+      // Update status bar
+      const km      = active.distanceKm.toFixed(1);
+      const mins    = Math.round(active.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const dur     = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+      this.setStatus(`Route ${index + 1}: ${km} km · ${dur}`);
+    }
+
+    // Refresh card highlights
+    this.querySelectorAll('.rp-alt-card').forEach((card, i) => {
+      card.classList.toggle('active', i === index);
+    });
+
+    this.dispatchEvent(new CustomEvent('route-alternative-select', {
+      bubbles: true,
+      composed: true,
+      detail: { index },
     }));
   }
 }

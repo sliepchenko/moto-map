@@ -32,6 +32,13 @@ class App {
   /** @type {AppSidebarComponent} */   #sidebar;
   /** @type {UrlStateManager} */       #urlState;
 
+  /**
+   * All route summaries from the last successful `renderPlannedRoute()` call.
+   * Stored here so `#onRouteAltSelect` can look up the newly active path.
+   * @type {Array<{distanceKm: number, durationMin: number, legs: object[], routePath: object[], hasTolls: boolean}>}
+   */
+  #lastRouteSummaries = [];
+
   constructor() {
     this.#urlState  = new UrlStateManager();
     this.#sidebar   = document.querySelector('app-sidebar');
@@ -58,13 +65,14 @@ class App {
     this.#sidebar.addEventListener('poi-select', e => this.#onPoiSelect(e));
 
     // Wire route planner events (bubbled from <route-planner> inside the sidebar)
-    this.#sidebar.addEventListener('route-geocode',     e => this.#onRouteGeocode(e));
-    this.#sidebar.addEventListener('route-plan',        e => this.#onRoutePlan(e));
-    this.#sidebar.addEventListener('route-save',        e => this.#onRouteSave(e));
-    this.#sidebar.addEventListener('route-export-gmaps',e => this.#onRouteExportGMaps(e));
-    this.#sidebar.addEventListener('route-clear',       () => this.#onRouteClear());
-    this.#sidebar.addEventListener('route-pick-start',  () => this.#map.enablePickMode());
-    this.#sidebar.addEventListener('route-pick-cancel', () => this.#map.disablePickMode());
+    this.#sidebar.addEventListener('route-geocode',            e => this.#onRouteGeocode(e));
+    this.#sidebar.addEventListener('route-plan',               e => this.#onRoutePlan(e));
+    this.#sidebar.addEventListener('route-alternative-select', e => this.#onRouteAltSelect(e));
+    this.#sidebar.addEventListener('route-save',               e => this.#onRouteSave(e));
+    this.#sidebar.addEventListener('route-export-gmaps',       e => this.#onRouteExportGMaps(e));
+    this.#sidebar.addEventListener('route-clear',              () => this.#onRouteClear());
+    this.#sidebar.addEventListener('route-pick-start',         () => this.#map.enablePickMode());
+    this.#sidebar.addEventListener('route-pick-cancel',        () => this.#map.disablePickMode());
 
     // Wire map-pick event back to route planner
     this.#map.on('map-pick', ({ lat, lng }) => {
@@ -88,6 +96,27 @@ class App {
       await this.#recalculateRoute(planner);
     });
 
+    // Wire alternative polyline clicks on the map → select the matching sidebar card.
+    // The RouteRenderer already swaps the active polyline; we only need to keep the
+    // sidebar card highlights in sync and refresh the fuel station overlay.
+    this.#map.setAltPolylineClickHandler(async index => {
+      const planner = this.#sidebar.routePlanner;
+      if (planner) planner.selectAltCard(index);
+      const summary = this.#lastRouteSummaries[index];
+      if (!summary) return;
+      try {
+        const count = await this.#map.showFuelStations(summary.routePath);
+        if (planner && count > 0) {
+          const km      = summary.distanceKm.toFixed(1);
+          const mins    = Math.round(summary.durationMin);
+          const hrs     = Math.floor(mins / 60);
+          const remMins = mins % 60;
+          const dur     = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+          planner.setStatus(`Route ${index + 1}: ${km} km · ${dur} · ${count} fuel station${count === 1 ? '' : 's'}`);
+        }
+      } catch { /* non-critical */ }
+    });
+
     // Wire settings change events (bubbled from <app-settings> inside the sidebar)
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
   }
@@ -106,28 +135,28 @@ class App {
     if (waypoints.length < 2) return;
     planner.setStatus('Recalculating route…');
     try {
-      const summary = await this.#map.renderPlannedRoute(
-        waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })),
+      const mapped = waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng }));
+      const summaries = await this.#map.renderPlannedRoute(
+        mapped,
         {
           avoidHighways: planner.avoidHighways,
           avoidTolls:    planner.avoidTolls,
           avoidFerries:  planner.avoidFerries,
         },
       );
-      const km      = summary.distanceKm.toFixed(1);
-      const mins    = Math.round(summary.durationMin);
+      this.#lastRouteSummaries = summaries;
+      // After recalculation (e.g. drag), always reset to route 0 — alternatives
+      // may have changed.  Use the first summary as the active one.
+      const primary = summaries[0];
+      const km      = primary.distanceKm.toFixed(1);
+      const mins    = Math.round(primary.durationMin);
       const hrs     = Math.floor(mins / 60);
       const remMins = mins % 60;
       const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
       planner.setStatus(`Route: ${km} km · ${duration}`);
-      planner.setRouteSummary({
-        waypoints:   waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })),
-        routePath:   summary.routePath,
-        distanceKm:  summary.distanceKm,
-        durationMin: summary.durationMin,
-      });
+      planner.setRouteSummaries(summaries, mapped, 0);
       try {
-        const count = await this.#map.showFuelStations(summary.routePath);
+        const count = await this.#map.showFuelStations(primary.routePath);
         if (count > 0) {
           planner.setStatus(`Route: ${km} km · ${duration} · ${count} fuel station${count === 1 ? '' : 's'}`);
         }
@@ -237,7 +266,7 @@ class App {
   }
 
   /**
-   * Renders the planned route on the map and shows a summary.
+   * Renders the planned route on the map and shows alternatives.
    * @param {CustomEvent} e  — detail: { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }
    */
   async #onRoutePlan({ detail: { waypoints, avoidHighways, avoidTolls, avoidFerries } }) {
@@ -247,26 +276,23 @@ class App {
     planner.setStatus('Calculating route…');
 
     try {
-      const summary = await this.#map.renderPlannedRoute(
+      const summaries = await this.#map.renderPlannedRoute(
         waypoints,
         { avoidHighways, avoidTolls, avoidFerries },
       );
-      const km      = summary.distanceKm.toFixed(1);
-      const mins    = Math.round(summary.durationMin);
+      this.#lastRouteSummaries = summaries;
+      const primary = summaries[0];
+      const km      = primary.distanceKm.toFixed(1);
+      const mins    = Math.round(primary.durationMin);
       const hrs     = Math.floor(mins / 60);
       const remMins = mins % 60;
       const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
       planner.setStatus(`Route: ${km} km · ${duration}`);
-      planner.setRouteSummary({
-        waypoints,
-        routePath:   summary.routePath,
-        distanceKm:  summary.distanceKm,
-        durationMin: summary.durationMin,
-      });
+      planner.setRouteSummaries(summaries, waypoints, 0);
 
-      // Automatically show fuel stations along the route without requiring a button press.
+      // Automatically show fuel stations along the active route.
       try {
-        const count = await this.#map.showFuelStations(summary.routePath);
+        const count = await this.#map.showFuelStations(primary.routePath);
         if (count > 0) {
           planner.setStatus(`Route: ${km} km · ${duration} · ${count} fuel station${count === 1 ? '' : 's'}`);
         }
@@ -277,6 +303,30 @@ class App {
       console.error('Route planning failed', err);
       planner.setStatus('Failed to calculate route.', true);
     }
+  }
+
+  /**
+   * Switches the active route to the chosen alternative without re-fetching directions.
+   * Also refreshes the fuel station overlay for the newly selected route path.
+   *
+   * @param {CustomEvent} e — detail: { index: number }
+   */
+  async #onRouteAltSelect({ detail: { index } }) {
+    this.#map.selectAlternativeRoute(index);
+    const summary = this.#lastRouteSummaries[index];
+    if (!summary) return;
+    try {
+      const count = await this.#map.showFuelStations(summary.routePath);
+      const planner = this.#sidebar.routePlanner;
+      if (planner && count > 0) {
+        const km      = summary.distanceKm.toFixed(1);
+        const mins    = Math.round(summary.durationMin);
+        const hrs     = Math.floor(mins / 60);
+        const remMins = mins % 60;
+        const dur     = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+        planner.setStatus(`Route ${index + 1}: ${km} km · ${dur} · ${count} fuel station${count === 1 ? '' : 's'}`);
+      }
+    } catch { /* non-critical */ }
   }
 
   /**
