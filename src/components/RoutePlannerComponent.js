@@ -7,11 +7,13 @@
  *  3. Remove individual waypoints.
  *  4. Press "Get Directions" to request a road-following route.
  *  5. Press "Save Route" to download the planned route as a trip JSON file.
- *  6. Press "Clear" to reset the planner.
+ *  6. Press "Open in Google Maps" to open the route in Google Maps.
+ *  7. Press "Clear" to reset the planner.
  *
  * Fires custom events (bubble up to the sidebar):
  *  - `route-plan`         { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
  *  - `route-save`         { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
+ *  - `route-export-gmaps` { waypoints: [{address,lat,lng}] }     — open route in Google Maps
  *  - `route-clear`                                                — when the user clears
  *  - `route-pick-start`                                           — ask map for a click-to-add-waypoint mode
  *
@@ -122,8 +124,10 @@ export class RoutePlannerComponent extends HTMLElement {
       avoidTolls:    this.#avoidTolls,
       avoidFerries:  this.#avoidFerries,
     };
-    const saveBtn = this.querySelector('#rp-save-btn');
+    const saveBtn  = this.querySelector('#rp-save-btn');
     if (saveBtn) saveBtn.disabled = false;
+    const gmapsBtn = this.querySelector('#rp-gmaps-btn');
+    if (gmapsBtn) gmapsBtn.disabled = false;
   }
 
   /** Returns the waypoints that have been geocoded (lat/lng resolved). */
@@ -205,6 +209,14 @@ export class RoutePlannerComponent extends HTMLElement {
         <div class="rp-actions">
           <button class="rp-btn rp-btn-directions" id="rp-go-btn" disabled>Get Directions</button>
           <button class="rp-btn rp-btn-save" id="rp-save-btn" disabled>Save Route</button>
+          <button class="rp-btn rp-btn-gmaps" id="rp-gmaps-btn" disabled title="Open this route in Google Maps">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>Google Maps
+          </button>
           <button class="rp-btn rp-btn-clear" id="rp-clear-btn">Clear</button>
         </div>
       </div>
@@ -217,6 +229,7 @@ export class RoutePlannerComponent extends HTMLElement {
     this.querySelector('#rp-pick-btn').addEventListener('click', () => this.#onPickClick());
     this.querySelector('#rp-go-btn').addEventListener('click',   () => this.#onGoClick());
     this.querySelector('#rp-save-btn').addEventListener('click', () => this.#onSaveClick());
+    this.querySelector('#rp-gmaps-btn').addEventListener('click',() => this.#onGMapsClick());
     this.querySelector('#rp-clear-btn').addEventListener('click',() => this.#onClearClick());
 
     // Bind avoidance toggles
@@ -386,8 +399,10 @@ export class RoutePlannerComponent extends HTMLElement {
     this.#setPickingMode(false);
     this.setStatus('');
     this.#render();
-    const saveBtn = this.querySelector('#rp-save-btn');
+    const saveBtn  = this.querySelector('#rp-save-btn');
     if (saveBtn) saveBtn.disabled = true;
+    const gmapsBtn = this.querySelector('#rp-gmaps-btn');
+    if (gmapsBtn) gmapsBtn.disabled = true;
     this.dispatchEvent(new CustomEvent('route-clear', { bubbles: true, composed: true }));
   }
 
@@ -398,6 +413,16 @@ export class RoutePlannerComponent extends HTMLElement {
       bubbles: true,
       composed: true,
       detail: { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries },
+    }));
+  }
+
+  #onGMapsClick() {
+    if (!this.#lastRouteSummary) return;
+    const { waypoints } = this.#lastRouteSummary;
+    this.dispatchEvent(new CustomEvent('route-export-gmaps', {
+      bubbles: true,
+      composed: true,
+      detail: { waypoints },
     }));
   }
 

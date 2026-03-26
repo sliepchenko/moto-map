@@ -483,15 +483,15 @@ route-planner {
   border-color: #3b82f6;
 }
 
-/* Actions row */
+/* Actions row — 2×2 grid so all 4 buttons are always visible */
 .rp-actions {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   padding: 4px 16px 2px;
 }
 
 .rp-btn-directions {
-  flex: 1;
   background: #16a34a;
   color: #fff;
 }
@@ -506,7 +506,6 @@ route-planner {
 }
 
 .rp-btn-save {
-  flex: 1;
   background: #1d4ed8;
   color: #fff;
 }
@@ -516,6 +515,23 @@ route-planner {
 }
 
 .rp-btn-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.rp-btn-gmaps {
+  background: #ea4335;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rp-btn-gmaps:hover:not(:disabled) {
+  background: #f26558;
+}
+
+.rp-btn-gmaps:disabled {
   opacity: 0.4;
   cursor: default;
 }

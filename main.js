@@ -61,6 +61,7 @@ class App {
     this.#sidebar.addEventListener('route-geocode',     e => this.#onRouteGeocode(e));
     this.#sidebar.addEventListener('route-plan',        e => this.#onRoutePlan(e));
     this.#sidebar.addEventListener('route-save',        e => this.#onRouteSave(e));
+    this.#sidebar.addEventListener('route-export-gmaps',e => this.#onRouteExportGMaps(e));
     this.#sidebar.addEventListener('route-clear',       () => this.#onRouteClear());
     this.#sidebar.addEventListener('route-pick-start',  () => this.#map.enablePickMode());
     this.#sidebar.addEventListener('route-pick-cancel', () => this.#map.disablePickMode());
@@ -321,6 +322,48 @@ class App {
     a.download = `${id}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Opens the planned route in Google Maps in a new browser tab.
+   *
+   * Uses the Google Maps Directions URL API:
+   *   https://developers.google.com/maps/documentation/urls/get-started#directions-action
+   *
+   * Format:
+   *   https://www.google.com/maps/dir/?api=1
+   *     &origin=<lat,lng>
+   *     &destination=<lat,lng>
+   *     &waypoints=<lat,lng>|<lat,lng>|…   (intermediate stops only, max 8)
+   *     &travelmode=two-wheeler
+   *
+   * @param {CustomEvent} e  — detail: { waypoints: [{address, lat, lng}] }
+   */
+  #onRouteExportGMaps({ detail: { waypoints } }) {
+    if (!waypoints || waypoints.length < 2) return;
+
+    const origin      = waypoints[0];
+    const destination = waypoints[waypoints.length - 1];
+    const intermediate = waypoints.slice(1, -1); // may be empty
+
+    const params = new URLSearchParams({
+      api:        '1',
+      origin:     `${origin.lat},${origin.lng}`,
+      destination:`${destination.lat},${destination.lng}`,
+      travelmode: 'driving',
+    });
+
+    // Google Maps URLs API supports up to 8 intermediate waypoints.
+    if (intermediate.length > 0) {
+      const wpStr = intermediate
+        .slice(0, 8)
+        .map(wp => `${wp.lat},${wp.lng}`)
+        .join('|');
+      params.set('waypoints', wpStr);
+    }
+
+    const gmapsUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
+    window.open(gmapsUrl, '_blank', 'noopener,noreferrer');
   }
 
   /** Clears the planned route from the map. */
