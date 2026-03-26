@@ -104,6 +104,12 @@ export class MapController extends EventEmitter {
   /** @type {Function|null} Stored until #routeRenderer is ready. */
   #pendingAltPolylineClickHandler = null;
 
+  /** @type {Function|null} Stored until #nearbyPlacesRenderer is ready. */
+  #pendingAddToRouteHandler = null;
+
+  /** @type {Function|null} Stored until #fuelRenderer is ready. */
+  #pendingFuelAddToRouteHandler = null;
+
   // ── public API ────────────────────────────────────────────────────────────
 
   /** The underlying `google.maps.Map` instance (available after `'load'`). */
@@ -316,6 +322,28 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Registers a callback invoked when the user clicks "Add to Route" on a
+   * nearby-place InfoWindow.  The callback receives `{ name, lat, lng }`.
+   *
+   * @param {((place: { name: string, lat: number, lng: number }) => void)|null} fn
+   */
+  setNearbyPlaceAddToRouteHandler(fn) {
+    this.#pendingAddToRouteHandler = fn;
+    this.#nearbyPlacesRenderer?.setAddToRouteHandler(fn);
+  }
+
+  /**
+   * Registers a callback invoked when the user clicks "Add to Route" on a
+   * fuel station InfoWindow.  The callback receives `{ name, lat, lng }`.
+   *
+   * @param {((place: { name: string, lat: number, lng: number }) => void)|null} fn
+   */
+  setFuelStationAddToRouteHandler(fn) {
+    this.#pendingFuelAddToRouteHandler = fn;
+    this.#fuelRenderer?.setAddToRouteHandler(fn);
+  }
+
+  /**
    * Shows or hides the directional arrow icons on all trip polylines.
    * @param {boolean} enabled
    */
@@ -437,7 +465,13 @@ export class MapController extends EventEmitter {
         this.#routeRenderer.setAltPolylineClickHandler(this.#pendingAltPolylineClickHandler);
       }
       this.#fuelRenderer          = new FuelStationRenderer(this.#map, this.#openInfoWindow);
+      if (this.#pendingFuelAddToRouteHandler) {
+        this.#fuelRenderer.setAddToRouteHandler(this.#pendingFuelAddToRouteHandler);
+      }
       this.#nearbyPlacesRenderer  = new NearbyPlacesRenderer(this.#map, this.#openInfoWindow);
+      if (this.#pendingAddToRouteHandler) {
+        this.#nearbyPlacesRenderer.setAddToRouteHandler(this.#pendingAddToRouteHandler);
+      }
       this.#geocoder              = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();

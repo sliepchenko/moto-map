@@ -13,6 +13,7 @@
 
 import { MapController }        from './src/map/MapController.js';
 import { UrlStateManager }      from './src/state/UrlStateManager.js';
+import { PLACE_CATEGORIES }     from './src/map/NearbyPlacesRenderer.js';
 
 // Register WebComponents before the DOM parser encounters their tags.
 import './src/components/TripListComponent.js';
@@ -132,8 +133,15 @@ class App {
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
 
     // Wire nearby-places events
-    this.#sidebar.addEventListener('nearby-place-focus',     e => this.#onNearbyPlaceFocus(e));
-    this.#sidebar.addEventListener('nearby-category-toggle', e => this.#onNearbyCategoryToggle(e));
+    this.#sidebar.addEventListener('nearby-place-focus',        e => this.#onNearbyPlaceFocus(e));
+    this.#sidebar.addEventListener('nearby-category-toggle',    e => this.#onNearbyCategoryToggle(e));
+    this.#sidebar.addEventListener('nearby-place-add-to-route', e => this.#onNearbyPlaceAddToRoute(e));
+
+    // Wire "Add to Route" button inside nearby-place InfoWindows on the map
+    this.#map.setNearbyPlaceAddToRouteHandler(place => this.#addNearbyPlaceToRoute(place));
+
+    // Wire "Add to Route" button inside fuel station InfoWindows on the map
+    this.#map.setFuelStationAddToRouteHandler(place => this.#addNearbyPlaceToRoute(place));
   }
 
   // ── private helpers ──────────────────────────────────────────────────────
@@ -500,6 +508,27 @@ class App {
   }
 
   /**
+   * Handles the `nearby-place-add-to-route` event from the sidebar panel.
+   * @param {CustomEvent} e — detail: { name: string, lat: number, lng: number }
+   */
+  #onNearbyPlaceAddToRoute({ detail: { name, lat, lng } }) {
+    this.#addNearbyPlaceToRoute({ name, lat, lng });
+  }
+
+  /**
+   * Adds a nearby place as a waypoint in the route planner and opens the
+   * Plan Route section so the user can see it was added.
+   *
+   * @param {{ name: string, lat: number, lng: number }} place
+   */
+  #addNearbyPlaceToRoute({ name, lat, lng }) {
+    const planner = this.#sidebar.routePlanner;
+    if (!planner) return;
+    planner.addMapPoint(lat, lng, name);
+    this.#sidebar.openSection('planner');
+  }
+
+  /**
    * Searches for nearby places along `routePath`, updates the sidebar panel,
    * and auto-opens the "Nearby Places" section.
    *
@@ -514,8 +543,20 @@ class App {
     this.#sidebar.openSection('nearby');
 
     try {
+      // Always fetch all categories so that disabled-category chips remain
+      // visible in the panel after a route switch.  The panel handles its own
+      // visibility filtering; the search must return the full result set.
       const places = await this.#map.showNearbyPlaces(routePath);
       panel.setPlaces(places);
+
+      // Re-apply marker visibility for any categories the user had disabled
+      // before the route switch (new markers are all visible by default).
+      const enabledCategories = new Set(panel.enabledCategories);
+      for (const { id } of PLACE_CATEGORIES) {
+        if (!enabledCategories.has(id)) {
+          this.#map.setNearbyPlaceCategoryVisibility(id, false);
+        }
+      }
     } catch (err) {
       console.warn('Nearby places search failed', err);
       panel.setPlaces([]);

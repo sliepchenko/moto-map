@@ -1136,6 +1136,25 @@ nearby-places {
   font-weight: 500;
 }
 
+.np-item-add-route {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+  background: transparent;
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+
+.np-item-add-route:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
 /* ── Responsive: bottom sheet on narrow screens ──────────────────────────── */
 
 @media (max-width: 600px) {

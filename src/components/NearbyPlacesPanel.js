@@ -10,8 +10,9 @@
  *  - Exposes `setPlaces(places)`, `setLoading(bool)`, `clear()`.
  *
  * Events dispatched (bubbling):
- *  - `nearby-place-focus`  — detail: { placeId: string }
- *  - `nearby-category-toggle` — detail: { categoryId: string, enabled: boolean }
+ *  - `nearby-place-focus`         — detail: { placeId: string }
+ *  - `nearby-place-add-to-route`  — detail: { name: string, lat: number, lng: number }
+ *  - `nearby-category-toggle`     — detail: { categoryId: string, enabled: boolean }
  *
  * SOLID notes:
  *  - SRP: only manages the nearby-places list UI; no map or Places API logic.
@@ -37,6 +38,11 @@ export class NearbyPlacesPanel extends HTMLElement {
   }
 
   // ── public API ────────────────────────────────────────────────────────────
+
+  /** Returns the set of currently enabled category IDs. */
+  get enabledCategories() {
+    return [...this.#enabledCategories];
+  }
 
   /**
    * Populates the panel with nearby places.
@@ -119,7 +125,7 @@ export class NearbyPlacesPanel extends HTMLElement {
           ? '<span class="np-item-open">Open</span>'
           : (place.isOpen === false ? '<span class="np-item-closed">Closed</span>' : '');
         return `
-          <li class="np-item" data-place-id="${place.id}" title="${place.name}">
+          <li class="np-item" data-place-id="${place.id}" data-place-name="${place.name.replace(/"/g, '&quot;')}" data-lat="${place.lat}" data-lng="${place.lng}" title="${place.name}">
             <div class="np-item-info">
               <span class="np-item-name">${place.name}</span>
               <span class="np-item-vicinity">${place.vicinity}</span>
@@ -127,6 +133,7 @@ export class NearbyPlacesPanel extends HTMLElement {
             <div class="np-item-meta">
               ${ratingHtml}${openHtml}
             </div>
+            <button class="np-item-add-route" data-place-id="${place.id}" title="Add to route">+</button>
           </li>
         `;
       }).join('');
@@ -181,11 +188,28 @@ export class NearbyPlacesPanel extends HTMLElement {
 
     // Place row clicks → pan map
     this.querySelectorAll('.np-item').forEach(item => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', e => {
+        // Don't trigger focus when the "Add to Route" button was clicked
+        if (e.target.closest('.np-item-add-route')) return;
         const placeId = item.dataset.placeId;
         this.dispatchEvent(new CustomEvent('nearby-place-focus', {
           bubbles: true,
           detail:  { placeId },
+        }));
+      });
+    });
+
+    // "Add to Route" buttons
+    this.querySelectorAll('.np-item-add-route').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const item = btn.closest('.np-item');
+        const name = item.dataset.placeName;
+        const lat  = parseFloat(item.dataset.lat);
+        const lng  = parseFloat(item.dataset.lng);
+        this.dispatchEvent(new CustomEvent('nearby-place-add-to-route', {
+          bubbles: true,
+          detail:  { name, lat, lng },
         }));
       });
     });

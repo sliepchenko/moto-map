@@ -55,6 +55,13 @@ export class NearbyPlacesRenderer {
   #markers = [];
 
   /**
+   * Optional callback invoked when the user clicks "Add to Route" inside an
+   * InfoWindow.  Receives `{ name, lat, lng }`.
+   * @type {((place: { name: string, lat: number, lng: number }) => void)|null}
+   */
+  #onAddToRoute = null;
+
+  /**
    * @param {google.maps.Map}                          map
    * @param {{ current: google.maps.InfoWindow|null }} openInfoWindow
    */
@@ -64,6 +71,16 @@ export class NearbyPlacesRenderer {
   }
 
   // ── public API ────────────────────────────────────────────────────────────
+
+  /**
+   * Registers a callback invoked when the user clicks "Add to Route" on a
+   * nearby-place marker InfoWindow.
+   *
+   * @param {((place: { name: string, lat: number, lng: number }) => void)|null} fn
+   */
+  setAddToRouteHandler(fn) {
+    this.#onAddToRoute = fn;
+  }
 
   /**
    * Searches for prominent places along `routePath`, renders their markers,
@@ -285,7 +302,10 @@ export class NearbyPlacesRenderer {
       const body = [
         place.vicinity ? `<div style="color:#9ca3af;font-size:11px;margin-bottom:2px">${place.vicinity}</div>` : '',
         (ratingHtml || openStatus) ? `<div style="margin-bottom:4px">${ratingHtml}${openStatus}</div>` : '',
+        `<div style="display:flex;gap:8px;align-items:center;margin-top:4px">`,
         `<a href="${mapsLink}" target="_blank" rel="noopener noreferrer" style="font-size:12px">Open in Maps</a>`,
+        `<button data-add-to-route data-place-id="${place.id}" data-place-name="${place.name.replace(/"/g, '&quot;')}" data-lat="${place.lat}" data-lng="${place.lng}" style="font-size:12px;padding:2px 8px;border:1px solid #3b82f6;border-radius:4px;background:#eff6ff;color:#1d4ed8;cursor:pointer;white-space:nowrap">+ Add to Route</button>`,
+        `</div>`,
       ].join('');
 
       const infoWindow = new google.maps.InfoWindow({
@@ -299,6 +319,16 @@ export class NearbyPlacesRenderer {
         this.#openInfoWindow.current?.close();
         infoWindow.open(this.#map, marker);
         this.#openInfoWindow.current = infoWindow;
+      });
+
+      // Wire "Add to Route" button inside the InfoWindow DOM
+      infoWindow.addListener('domready', () => {
+        const btn = document.querySelector(`[data-add-to-route][data-place-id="${place.id}"]`);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            this.#onAddToRoute?.({ name: place.name, lat: place.lat, lng: place.lng });
+          });
+        }
       });
 
       return marker;
