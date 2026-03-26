@@ -520,6 +520,65 @@ route-planner {
   line-height: 1.4;
 }
 
+/* Avoidance option pill-toggles */
+.rp-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 16px 6px;
+}
+
+.rp-option-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px 4px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.rp-option-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+}
+
+.rp-option-toggle.on {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.rp-option-toggle.on:hover {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+/* Small round indicator dot inside the pill */
+.rp-option-thumb {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4b5563;
+  transition: background 0.15s;
+}
+
+.rp-option-toggle.on .rp-option-thumb {
+  background: #ef4444;
+}
+
+.rp-option-label {
+  pointer-events: none;
+  user-select: none;
+}
+
 /* ── Settings button & panel ─────────────────────────────────────────────── */
 
 /* Wrapper that sticks to the bottom of the sidebar */
@@ -786,5 +845,325 @@ app-settings {
 
   .poi-desc {
     display: none;
+  }
+}
+
+/* ── Navigate button in sidebar bottom ───────────────────────────────────── */
+
+.nav-open-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  text-align: left;
+}
+
+.nav-open-btn:hover {
+  background: rgba(34, 197, 94, 0.08);
+  color: #4ade80;
+}
+
+.nav-open-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Navigation HUD ───────────────────────────────────────────────────────── */
+
+navigation-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  pointer-events: none; /* individual panels opt-in with pointer-events: auto */
+}
+
+/* Search overlay — full-width bar at the top of the screen */
+.nav-search-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(18, 24, 20, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+}
+
+.nav-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-search-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 14px;
+  padding: 8px 10px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+
+.nav-search-input::placeholder { color: #4b5563; }
+.nav-search-input:focus         { border-color: #06b6d4; }
+
+.nav-close-btn,
+.nav-go-btn,
+.nav-pick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.nav-close-btn:hover,
+.nav-go-btn:hover,
+.nav-pick-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #e5e7eb;
+}
+
+.nav-go-btn {
+  background: #0e7490;
+  border-color: #06b6d4;
+  color: #fff;
+}
+.nav-go-btn:hover { background: #0891b2; }
+
+.nav-pick-btn.active {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+  color: #06b6d4;
+}
+
+.nav-close-btn svg,
+.nav-go-btn svg,
+.nav-pick-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-search-error {
+  padding: 4px 4px 0;
+  font-size: 12px;
+  color: #f87171;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* Loading row */
+.nav-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 2px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.nav-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #06b6d4;
+  border-radius: 50%;
+  animation: nav-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes nav-spin { to { transform: rotate(360deg); } }
+
+/* Preview row (route summary + Start button) */
+.nav-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px 2px;
+}
+
+.nav-preview-info {
+  font-size: 13px;
+  color: #d1d5db;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-start-btn {
+  padding: 7px 18px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.nav-start-btn:hover { background: #22c55e; }
+
+/* Turn-by-turn instruction banner */
+.nav-instruction-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(6, 182, 212, 0.92);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.nav-maneuver-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+}
+
+.nav-instruction-text {
+  flex: 1;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.nav-step-distance {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.nav-stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(239, 68, 68, 0.85);
+  border: none;
+  border-radius: 7px;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.nav-stop-btn:hover { background: #ef4444; }
+.nav-stop-btn svg { width: 16px; height: 16px; }
+
+/* Bottom navigation bar */
+.nav-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(18, 24, 20, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  z-index: 30;
+}
+
+.nav-progress-text {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.nav-recenter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid #06b6d4;
+  border-radius: 8px;
+  color: #06b6d4;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-recenter-btn:hover { background: rgba(6, 182, 212, 0.3); }
+.nav-recenter-btn svg { width: 18px; height: 18px; }
+
+/* Arrived banner */
+.nav-arrived-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(22, 163, 74, 0.95);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  pointer-events: auto;
+}
+
+.nav-arrived-icon { font-size: 22px; }
+
+.nav-arrived-close {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-arrived-close:hover { background: rgba(255, 255, 255, 0.35); }
+
+/* Utility: hidden state for all HUD panels */
+.hidden { display: none !important; }
+
+/* ── Responsive adjustments for navigation HUD ───────────────────────────── */
+
+@media (max-width: 600px) {
+  .nav-search-overlay {
+    padding: 8px;
+  }
+
+  .nav-instruction-banner {
+    padding: 10px 12px;
+  }
+
+  .nav-instruction-text {
+    font-size: 13px;
   }
 }

@@ -21,6 +21,15 @@ export class RouteRenderer {
   /** @type {{ current: google.maps.InfoWindow|null }} */
   #openInfoWindow;
 
+  /** @type {boolean} */
+  #avoidHighways = false;
+
+  /** @type {boolean} */
+  #avoidTolls = false;
+
+  /** @type {boolean} */
+  #avoidFerries = false;
+
   /**
    * @param {google.maps.Map}                          map
    * @param {{ current: google.maps.InfoWindow|null }} openInfoWindow
@@ -102,6 +111,16 @@ export class RouteRenderer {
     this.#markers = [];
   }
 
+  /**
+   * Sets road-type avoidance flags used for future route renders.
+   * @param {{ avoidHighways?: boolean, avoidTolls?: boolean, avoidFerries?: boolean }} options
+   */
+  setAvoidOptions({ avoidHighways, avoidTolls, avoidFerries }) {
+    if (avoidHighways !== undefined) this.#avoidHighways = avoidHighways;
+    if (avoidTolls    !== undefined) this.#avoidTolls    = avoidTolls;
+    if (avoidFerries  !== undefined) this.#avoidFerries  = avoidFerries;
+  }
+
   // ── private ──────────────────────────────────────────────────────────────
 
   /**
@@ -157,7 +176,14 @@ export class RouteRenderer {
   #routeSegment(origin, destination) {
     return new Promise(resolve => {
       new google.maps.DirectionsService().route(
-        { origin, destination, travelMode: google.maps.TravelMode.DRIVING },
+        {
+          origin,
+          destination,
+          travelMode:    google.maps.TravelMode.TWO_WHEELER,
+          avoidHighways: this.#avoidHighways,
+          avoidTolls:    this.#avoidTolls,
+          avoidFerries:  this.#avoidFerries,
+        },
         (result, status) => resolve({ result, status }),
       );
     });

@@ -105,6 +105,14 @@ export class AppSidebarComponent extends HTMLElement {
       </div>
 
       <div class="sidebar-bottom">
+        <button class="nav-open-btn" id="sidebar-nav-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1018 0A9 9 0 003 12z"/>
+            <path d="M12 8v4l3 3"/>
+          </svg>
+          <span>Navigate</span>
+        </button>
         <app-settings></app-settings>
       </div>
     `;
@@ -113,6 +121,12 @@ export class AppSidebarComponent extends HTMLElement {
     this.#poiList     = this.querySelector('poi-list');
     this.#routePlanner = this.querySelector('route-planner');
     this.#settings    = this.querySelector('app-settings');
+
+    // Navigate button — dispatches a bubbling event that App listens to
+    const navBtn = this.querySelector('#sidebar-nav-btn');
+    navBtn?.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('nav-open', { bubbles: true, composed: true }));
+    });
   }
 
   #bindAccordion() {

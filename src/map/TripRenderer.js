@@ -75,7 +75,12 @@ export class TripRenderer {
 
     // Build road-following route asynchronously; both polylines share the
     // same MVCArray path so they update together.
-    this.#buildRoute(waypoints, path);
+    const avoidOptions = {
+      avoidHighways: trip.avoidHighways ?? false,
+      avoidTolls:    trip.avoidTolls    ?? false,
+      avoidFerries:  trip.avoidFerries  ?? false,
+    };
+    this.#buildRoute(waypoints, path, avoidOptions);
 
     const markers = this.#renderWaypoints(waypoints, color);
 
@@ -84,12 +89,12 @@ export class TripRenderer {
 
   // ── private ──────────────────────────────────────────────────────────────
 
-  async #buildRoute(waypoints, path) {
+  async #buildRoute(waypoints, path, avoidOptions = {}) {
     for (let i = 0; i < waypoints.length - 1; i++) {
       const origin      = new google.maps.LatLng(waypoints[i].lat,     waypoints[i].lng);
       const destination = new google.maps.LatLng(waypoints[i + 1].lat, waypoints[i + 1].lng);
 
-      const { result, status } = await this.#routeSegment(origin, destination);
+      const { result, status } = await this.#routeSegment(origin, destination, avoidOptions);
 
       if (status === google.maps.DirectionsStatus.OK) {
         result.routes[0].overview_path.forEach(pt => path.push(pt));
@@ -102,10 +107,17 @@ export class TripRenderer {
   }
 
   /** Wraps DirectionsService.route() in a Promise. */
-  #routeSegment(origin, destination) {
+  #routeSegment(origin, destination, { avoidHighways = false, avoidTolls = false, avoidFerries = false } = {}) {
     return new Promise(resolve => {
       new google.maps.DirectionsService().route(
-        { origin, destination, travelMode: google.maps.TravelMode.DRIVING },
+        {
+          origin,
+          destination,
+          travelMode:    google.maps.TravelMode.TWO_WHEELER,
+          avoidHighways,
+          avoidTolls,
+          avoidFerries,
+        },
         (result, status) => resolve({ result, status }),
       );
     });

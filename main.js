@@ -13,6 +13,8 @@
 
 import { MapController }        from './src/map/MapController.js';
 import { UrlStateManager }      from './src/state/UrlStateManager.js';
+import { LocationTracker }      from './src/core/LocationTracker.js';
+import { NavigationSession }    from './src/map/NavigationSession.js';
 
 // Register WebComponents before the DOM parser encounters their tags.
 import './src/components/TripListComponent.js';
@@ -20,6 +22,7 @@ import './src/components/PoiListComponent.js';
 import './src/components/AppSidebarComponent.js';
 import './src/components/RoutePlannerComponent.js';
 import './src/components/AppSettingsComponent.js';
+import './src/components/NavigationHudComponent.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -31,6 +34,15 @@ class App {
   /** @type {MapController} */         #map;
   /** @type {AppSidebarComponent} */   #sidebar;
   /** @type {UrlStateManager} */       #urlState;
+  /** @type {NavigationHudComponent} */ #navHud;
+  /** @type {LocationTracker} */       #locationTracker;
+  /** @type {NavigationSession} */     #navSession;
+
+  /**
+   * Pending destination (geocoded lat/lng) waiting for user to tap "Start".
+   * @type {{ lat: number, lng: number, path: Array, distanceKm: number, durationMin: number }|null}
+   */
+  #pendingNav = null;
 
   constructor() {
     this.#urlState  = new UrlStateManager();
@@ -39,6 +51,9 @@ class App {
       GOOGLE_MAPS_API_KEY,
       document.getElementById('map'),
     );
+    this.#locationTracker = new LocationTracker();
+    this.#navSession      = new NavigationSession();
+    this.#navHud          = document.querySelector('navigation-hud');
   }
 
   async start() {
@@ -65,13 +80,60 @@ class App {
     this.#sidebar.addEventListener('route-pick-start',() => this.#map.enablePickMode());
     this.#sidebar.addEventListener('route-pick-cancel',() => this.#map.disablePickMode());
 
-    // Wire map-pick event back to the route-planner component
+    // Wire map-pick event back — routes to nav HUD or route planner depending on context
     this.#map.on('map-pick', ({ lat, lng }) => {
-      this.#sidebar.routePlanner?.addMapPoint(lat, lng);
+      if (this.#navHud.querySelector('.nav-search-overlay:not(.hidden)')) {
+        // Navigation HUD is open — treat pick as a destination
+        this.#navHud.setPickMode(false);
+        this.#map.disablePickMode();
+        this.#onNavCoordinate(lat, lng);
+      } else {
+        // Otherwise feed into route planner
+        this.#sidebar.routePlanner?.addMapPoint(lat, lng);
+      }
     });
 
     // Wire settings change events (bubbled from <app-settings> inside the sidebar)
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
+
+    // ── Navigation HUD events ────────────────────────────────────────────────
+
+    // Sidebar "Navigate" button → open the HUD search bar
+    this.#sidebar.addEventListener('nav-open', () => this.#navHud.openSearch());
+
+    // User typed/picked a destination address
+    document.addEventListener('nav-destination', e => this.#onNavDestination(e));
+
+    // User confirmed "Start"
+    document.addEventListener('nav-start', () => this.#onNavStart());
+
+    // User cancelled / stopped navigation
+    document.addEventListener('nav-stop', () => this.#onNavStop());
+
+    // Re-center map on current GPS position
+    document.addEventListener('nav-recenter', () => this.#onNavRecenter());
+
+    // Pick-on-map buttons for nav HUD
+    document.addEventListener('nav-pick-start',  () => this.#map.enablePickMode());
+    document.addEventListener('nav-pick-cancel', () => this.#map.disablePickMode());
+
+    // LocationTracker → update map dot + session
+    this.#locationTracker.onPosition(pos => this.#onGpsPosition(pos));
+    this.#locationTracker.onError(err  => {
+      console.warn('GPS error:', err.message ?? err);
+    });
+
+    // NavigationSession callbacks
+    this.#navSession.onStep(step => {
+      this.#navHud.updateStep(step);
+    });
+    this.#navSession.onArrived(() => {
+      this.#locationTracker.stop();
+      this.#navHud.showArrived();
+    });
+    this.#navSession.onError(msg => {
+      this.#navHud.showError(msg);
+    });
   }
 
   // ── private handlers ─────────────────────────────────────────────────────
@@ -174,16 +236,19 @@ class App {
 
   /**
    * Renders the planned route on the map and shows a summary.
-   * @param {CustomEvent} e  — detail: { waypoints: [{address,lat,lng}] }
+   * @param {CustomEvent} e  — detail: { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }
    */
-  async #onRoutePlan({ detail: { waypoints } }) {
+  async #onRoutePlan({ detail: { waypoints, avoidHighways, avoidTolls, avoidFerries } }) {
     const planner = this.#sidebar.routePlanner;
     if (!planner) return;
 
     planner.setStatus('Calculating route…');
 
     try {
-      const summary = await this.#map.renderPlannedRoute(waypoints);
+      const summary = await this.#map.renderPlannedRoute(
+        waypoints,
+        { avoidHighways, avoidTolls, avoidFerries },
+      );
       const km      = summary.distanceKm.toFixed(1);
       const mins    = Math.round(summary.durationMin);
       const hrs     = Math.floor(mins / 60);
@@ -204,9 +269,9 @@ class App {
 
   /**
    * Downloads the planned route as a trip JSON file.
-   * @param {CustomEvent} e  — detail: { waypoints, routePath, distanceKm, durationMin }
+   * @param {CustomEvent} e  — detail: { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries }
    */
-  #onRouteSave({ detail: { waypoints, routePath, distanceKm, durationMin } }) {
+  #onRouteSave({ detail: { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } }) {
     // Build filename in the same format as existing trips: trip_DD-MM-YY.json
     const now = new Date();
     const dd  = String(now.getDate()).padStart(2, '0');
@@ -215,6 +280,7 @@ class App {
     const id  = `trip_${dd}-${mm}-${yy}`;
 
     // Build the trip object matching the existing schema
+    const lastIdx = waypoints.length - 1;
     const trip = {
       id,
       title: waypoints[0]?.address
@@ -224,8 +290,15 @@ class App {
       waypoints: waypoints.map((wp, i) => ({
         lat: wp.lat,
         lng: wp.lng,
-        ...(i === 0 ? { isVisible: true } : {}),
+        // Mark start and finish visible so "My Rides" renders both endpoint markers.
+        ...(i === 0 || i === lastIdx ? { isVisible: true } : {}),
+        // Preserve address for display (e.g. info-window labels).
+        ...(wp.address ? { label: wp.address } : {}),
       })),
+      // Always preserve avoidance options so the route is re-drawn identically in "My Rides".
+      avoidHighways: avoidHighways ?? false,
+      avoidTolls:    avoidTolls    ?? false,
+      avoidFerries:  avoidFerries  ?? false,
     };
 
     const json = JSON.stringify(trip, null, 2);
@@ -262,6 +335,119 @@ class App {
     if (key === 'darkMap') {
       this.#map.setDarkMap(value);
     }
+  }
+
+  // ── navigation handlers ───────────────────────────────────────────────────
+
+  /**
+   * User submitted a destination address from the nav HUD search bar.
+   * Geocodes it, then calls `#onNavCoordinate`.
+   * @param {CustomEvent} e — detail: { address: string }
+   */
+  async #onNavDestination({ detail: { address } }) {
+    const coords = await this.#map.geocode(address);
+    if (!coords) {
+      this.#navHud.showError(`Could not find "${address}". Try a more specific address.`);
+      return;
+    }
+    await this.#onNavCoordinate(coords.lat, coords.lng);
+  }
+
+  /**
+   * Requests a route from current GPS position to the given coordinate and
+   * shows the preview (distance + duration + "Start" button).
+   *
+   * @param {number} lat
+   * @param {number} lng
+   */
+  async #onNavCoordinate(lat, lng) {
+    // We need a current GPS position to compute the route from.
+    let origin = this.#locationTracker.lastPosition;
+
+    if (!origin) {
+      // Try to get a one-shot position first
+      origin = await this.#getOneTimePosition();
+      if (!origin) {
+        this.#navHud.showError('Could not determine your current location. Please enable GPS.');
+        return;
+      }
+    }
+
+    this.#navHud.showLoading();
+
+    const result = await this.#navSession.start(origin, { lat, lng });
+    if (!result) return; // error already emitted by session
+
+    this.#pendingNav = { lat, lng, ...result };
+
+    // Draw the route preview on the map
+    this.#map.drawNavigationRoute(result.path, { lat, lng });
+
+    this.#navHud.setRoutePreview(result.distanceKm, result.durationMin);
+  }
+
+  /**
+   * User tapped "Start" on the route preview — begin turn-by-turn navigation.
+   */
+  #onNavStart() {
+    if (!this.#pendingNav) return;
+
+    // Start GPS tracking
+    this.#locationTracker.start();
+
+    // The session is already started (from preview); just show the HUD
+    const firstStep = this.#navSession.steps[0];
+    if (firstStep) {
+      this.#navHud.startNavigating({
+        instruction: firstStep.instruction,
+        distance:    firstStep.distance,
+        maneuver:    firstStep.maneuver,
+        stepIndex:   0,
+        totalSteps:  this.#navSession.steps.length,
+      });
+    }
+
+    // Enable auto-follow
+    this.#map.setFollowPosition(true);
+  }
+
+  /** User cancelled or stopped navigation. */
+  #onNavStop() {
+    this.#locationTracker.stop();
+    this.#navSession.stop();
+    this.#map.clearNavigation();
+    this.#pendingNav = null;
+  }
+
+  /** Re-center the map on the latest GPS position. */
+  #onNavRecenter() {
+    const pos = this.#locationTracker.lastPosition;
+    if (pos) this.#map.recenterOnPosition(pos);
+    this.#map.setFollowPosition(true);
+  }
+
+  /**
+   * Called on every new GPS position during navigation.
+   * @param {{ lat: number, lng: number, accuracy: number }} pos
+   */
+  #onGpsPosition(pos) {
+    this.#map.updateNavigationPosition(pos);
+    this.#navSession.updatePosition(pos);
+  }
+
+  /**
+   * Returns a single GPS fix using `getCurrentPosition`, or null on error.
+   * @returns {Promise<{ lat: number, lng: number }|null>}
+   */
+  #getOneTimePosition() {
+    return new Promise(resolve => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        ()  => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    });
   }
 }
 

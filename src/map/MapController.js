@@ -1,11 +1,12 @@
-import { EventEmitter }      from '../core/EventEmitter.js';
-import { assignTripColors }  from '../core/ColorUtils.js';
-import { MapLoader }         from './MapLoader.js';
-import { TripRenderer }      from './TripRenderer.js';
-import { PoiRenderer }       from './PoiRenderer.js';
-import { RouteRenderer }     from './RouteRenderer.js';
-import { TripRepository }    from '../data/TripRepository.js';
-import { PoiRepository }     from '../data/PoiRepository.js';
+import { EventEmitter }        from '../core/EventEmitter.js';
+import { assignTripColors }    from '../core/ColorUtils.js';
+import { MapLoader }           from './MapLoader.js';
+import { TripRenderer }        from './TripRenderer.js';
+import { PoiRenderer }         from './PoiRenderer.js';
+import { RouteRenderer }       from './RouteRenderer.js';
+import { NavigationRenderer }  from './NavigationRenderer.js';
+import { TripRepository }      from '../data/TripRepository.js';
+import { PoiRepository }       from '../data/PoiRepository.js';
 
 /** Default map centre (Zagreb, Croatia). */
 const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
@@ -75,6 +76,12 @@ export class MapController extends EventEmitter {
   /** @type {RouteRenderer|null} */
   #routeRenderer = null;
 
+  /** @type {TripRenderer|null} */
+  #tripRenderer = null;
+
+  /** @type {NavigationRenderer|null} */
+  #navRenderer = null;
+
   /** @type {google.maps.Geocoder|null} */
   #geocoder = null;
 
@@ -83,6 +90,9 @@ export class MapController extends EventEmitter {
 
   /** @type {google.maps.MapsEventListener|null} */
   #pickListener = null;
+
+  /** Whether the map should auto-pan to follow the live GPS position. */
+  #followPosition = false;
 
   // ── public API ────────────────────────────────────────────────────────────
 
@@ -180,9 +190,11 @@ export class MapController extends EventEmitter {
    * Returns a summary object { distanceKm, durationMin, legs }.
    *
    * @param {Array<{address: string, lat: number, lng: number}>} waypoints
+   * @param {{ avoidHighways?: boolean, avoidTolls?: boolean, avoidFerries?: boolean }} [avoidOptions]
    * @returns {Promise<{distanceKm: number, durationMin: number, legs: object[]}>}
    */
-  async renderPlannedRoute(waypoints) {
+  async renderPlannedRoute(waypoints, avoidOptions = {}) {
+    this.#routeRenderer.setAvoidOptions(avoidOptions);
     return this.#routeRenderer.render(waypoints);
   }
 
@@ -278,6 +290,63 @@ export class MapController extends EventEmitter {
     }
   }
 
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  /**
+   * Draws a navigation route on the map (cyan polyline + destination pin).
+   *
+   * @param {Array<{lat: number, lng: number}>} path
+   * @param {{ lat: number, lng: number }}      destination
+   */
+  drawNavigationRoute(path, destination) {
+    this.#navRenderer?.drawRoute(path, destination);
+
+    // Fit viewport to the route
+    const bounds = new google.maps.LatLngBounds();
+    path.forEach(p => bounds.extend(p));
+    this.#map.fitBounds(bounds);
+  }
+
+  /**
+   * Updates the live GPS position dot and optionally pans the map to follow.
+   *
+   * @param {{ lat: number, lng: number, accuracy: number }} position
+   */
+  updateNavigationPosition(position) {
+    this.#navRenderer?.updatePosition(position);
+    if (this.#followPosition) {
+      this.#map.panTo({ lat: position.lat, lng: position.lng });
+    }
+  }
+
+  /**
+   * Pans the map to the given position and briefly raises the zoom level so
+   * the rider can see where they are (re-center button behaviour).
+   *
+   * @param {{ lat: number, lng: number }} position
+   */
+  recenterOnPosition(position) {
+    this.#followPosition = true;
+    this.#map.panTo({ lat: position.lat, lng: position.lng });
+    if (this.#map.getZoom() < 15) {
+      this.#map.setZoom(15);
+    }
+  }
+
+  /**
+   * Enables or disables auto-follow (map pans with every GPS update).
+   * @param {boolean} follow
+   */
+  setFollowPosition(follow) {
+    this.#followPosition = follow;
+  }
+
+  /** Clears all navigation map objects (polyline, position dot, dest pin). */
+  clearNavigation() {
+    this.#navRenderer?.clear();
+    this.#followPosition = false;
+  }
+
   // ── private ──────────────────────────────────────────────────────────────
 
   async #onMapReady() {
@@ -292,6 +361,7 @@ export class MapController extends EventEmitter {
       this.#pois  = pois;
 
       const tripRenderer = new TripRenderer(this.#map, this.#openInfoWindow);
+      this.#tripRenderer = tripRenderer;
       trips.forEach(trip => {
         const { polyline, markers, _basePolyline } = tripRenderer.render(trip);
         this.#tripLayers.set(trip.id, { trip, polyline, basePolyline: _basePolyline, markers });
@@ -300,8 +370,9 @@ export class MapController extends EventEmitter {
       const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
       this.#poiMarkers   = poiRenderer.renderAll(pois);
 
-      // Initialise route planner renderer and geocoder
+      // Initialise route planner renderer, navigation renderer, and geocoder
       this.#routeRenderer = new RouteRenderer(this.#map, this.#openInfoWindow);
+      this.#navRenderer   = new NavigationRenderer(this.#map);
       this.#geocoder      = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();

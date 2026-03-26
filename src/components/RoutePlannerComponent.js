@@ -10,8 +10,8 @@
  *  6. Press "Clear" to reset the planner.
  *
  * Fires custom events (bubble up to the sidebar):
- *  - `route-plan`   { waypoints: [{address,lat,lng}] }  — when the user submits
- *  - `route-save`   { waypoints, routePath, distanceKm, durationMin } — download trip JSON
+ *  - `route-plan`   { waypoints: [{address,lat,lng}], avoidHighways, avoidTolls, avoidFerries }  — when the user submits
+ *  - `route-save`   { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } — download trip JSON
  *  - `route-clear`                                       — when the user clears
  *  - `route-pick-start`                                  — ask map for a click-to-add-waypoint mode
  *
@@ -34,6 +34,11 @@ export class RoutePlannerComponent extends HTMLElement {
    * @type {{ waypoints: object[], routePath: object[], distanceKm: number, durationMin: number }|null}
    */
   #lastRouteSummary = null;
+
+  // ── avoidance options ──────────────────────────────────────────────────────
+  /** @type {boolean} */ #avoidHighways = false;
+  /** @type {boolean} */ #avoidTolls    = false;
+  /** @type {boolean} */ #avoidFerries  = false;
 
   connectedCallback() {
     this.#buildDOM();
@@ -75,7 +80,13 @@ export class RoutePlannerComponent extends HTMLElement {
    * @param {{ waypoints: object[], routePath: object[], distanceKm: number, durationMin: number }} summary
    */
   setRouteSummary(summary) {
-    this.#lastRouteSummary = summary;
+    // Capture the current avoidance options so they are included in the export.
+    this.#lastRouteSummary = {
+      ...summary,
+      avoidHighways: this.#avoidHighways,
+      avoidTolls:    this.#avoidTolls,
+      avoidFerries:  this.#avoidFerries,
+    };
     const saveBtn = this.querySelector('#rp-save-btn');
     if (saveBtn) saveBtn.disabled = false;
   }
@@ -114,6 +125,41 @@ export class RoutePlannerComponent extends HTMLElement {
           </button>
         </div>
         <div class="rp-status" id="rp-status"></div>
+        <div class="rp-options">
+          <button
+            class="rp-option-toggle ${this.#avoidHighways ? 'on' : ''}"
+            id="rp-avoid-highways"
+            role="switch"
+            aria-checked="${this.#avoidHighways}"
+            data-key="avoidHighways"
+            title="Avoid highways / motorways"
+          >
+            <span class="rp-option-thumb"></span>
+            <span class="rp-option-label">No highways</span>
+          </button>
+          <button
+            class="rp-option-toggle ${this.#avoidTolls ? 'on' : ''}"
+            id="rp-avoid-tolls"
+            role="switch"
+            aria-checked="${this.#avoidTolls}"
+            data-key="avoidTolls"
+            title="Avoid toll roads"
+          >
+            <span class="rp-option-thumb"></span>
+            <span class="rp-option-label">No tolls</span>
+          </button>
+          <button
+            class="rp-option-toggle ${this.#avoidFerries ? 'on' : ''}"
+            id="rp-avoid-ferries"
+            role="switch"
+            aria-checked="${this.#avoidFerries}"
+            data-key="avoidFerries"
+            title="Avoid ferries"
+          >
+            <span class="rp-option-thumb"></span>
+            <span class="rp-option-label">No ferries</span>
+          </button>
+        </div>
         <div class="rp-actions">
           <button class="rp-btn rp-btn-directions" id="rp-go-btn" disabled>Get Directions</button>
           <button class="rp-btn rp-btn-save" id="rp-save-btn" disabled>Save Route</button>
@@ -130,6 +176,10 @@ export class RoutePlannerComponent extends HTMLElement {
     this.querySelector('#rp-go-btn').addEventListener('click',   () => this.#onGoClick());
     this.querySelector('#rp-save-btn').addEventListener('click', () => this.#onSaveClick());
     this.querySelector('#rp-clear-btn').addEventListener('click',() => this.#onClearClick());
+
+    // Bind avoidance toggles
+    this.querySelectorAll('.rp-option-toggle').forEach(btn =>
+      btn.addEventListener('click', () => this.#onOptionToggle(btn)));
 
     const input = this.querySelector('#rp-new-address');
     input.addEventListener('keydown', e => {
@@ -230,7 +280,12 @@ export class RoutePlannerComponent extends HTMLElement {
     this.dispatchEvent(new CustomEvent('route-plan', {
       bubbles: true,
       composed: true,
-      detail: { waypoints: waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })) },
+      detail: {
+        waypoints:     waypoints.map(w => ({ address: w.address, lat: w.lat, lng: w.lng })),
+        avoidHighways: this.#avoidHighways,
+        avoidTolls:    this.#avoidTolls,
+        avoidFerries:  this.#avoidFerries,
+      },
     }));
   }
 
@@ -247,12 +302,25 @@ export class RoutePlannerComponent extends HTMLElement {
 
   #onSaveClick() {
     if (!this.#lastRouteSummary) return;
-    const { waypoints, routePath, distanceKm, durationMin } = this.#lastRouteSummary;
+    const { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries } = this.#lastRouteSummary;
     this.dispatchEvent(new CustomEvent('route-save', {
       bubbles: true,
       composed: true,
-      detail: { waypoints, routePath, distanceKm, durationMin },
+      detail: { waypoints, routePath, distanceKm, durationMin, avoidHighways, avoidTolls, avoidFerries },
     }));
+  }
+
+  /** Handles clicks on an avoidance toggle pill. */
+  #onOptionToggle(btn) {
+    const key  = btn.dataset.key;
+    const next = !(btn.getAttribute('aria-checked') === 'true');
+
+    if (key === 'avoidHighways') this.#avoidHighways = next;
+    if (key === 'avoidTolls')    this.#avoidTolls    = next;
+    if (key === 'avoidFerries')  this.#avoidFerries  = next;
+
+    btn.setAttribute('aria-checked', String(next));
+    btn.classList.toggle('on', next);
   }
 
   /** Fires a geocode request up to the orchestrator. */
