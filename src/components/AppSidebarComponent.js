@@ -1,18 +1,19 @@
 /**
- * `<app-sidebar>` — the full sidebar wrapper with three accordion sections
- * ("My Rides", "My POI", and "Plan Route").
+ * `<app-sidebar>` — the full sidebar wrapper with four accordion sections
+ * ("My Rides", "My POI", "Plan Route", and "Nearby Places").
  *
  * Contains:
- *  - Three `<div class="accordion-section">` wrappers with `<button>` headers
+ *  - Four `<div class="accordion-section">` wrappers with `<button>` headers
  *    and `<div class="accordion-body">` panels.
- *  - Hosts `<trip-list>`, `<poi-list>`, and `<route-planner>` custom elements
- *    inside those panels.
+ *  - Hosts `<trip-list>`, `<poi-list>`, `<route-planner>`, and
+ *    `<nearby-places>` custom elements inside those panels.
  *
  * Public API:
  *  - `show()`                  — removes the `hidden` class.
- *  - `openSection(name)`       — opens 'rides', 'poi', or 'planner' accordion section.
+ *  - `openSection(name)`       — opens 'rides', 'poi', 'planner', or 'nearby' accordion section.
  *  - `tripList` / `poiList`    — direct references to the child components.
  *  - `routePlanner`            — direct reference to the route-planner component.
+ *  - `nearbyPlaces`            — direct reference to the nearby-places component.
  *
  * SOLID notes:
  *  - SRP: manages sidebar structure and accordion behaviour only.
@@ -31,6 +32,8 @@ export class AppSidebarComponent extends HTMLElement {
   #routePlanner = null;
   /** @type {import('./AppSettingsComponent.js').AppSettingsComponent|null} */
   #settings = null;
+  /** @type {import('./NearbyPlacesPanel.js').NearbyPlacesPanel|null} */
+  #nearbyPlaces = null;
 
   connectedCallback() {
     this.id = 'sidebar';
@@ -49,7 +52,7 @@ export class AppSidebarComponent extends HTMLElement {
 
   /**
    * Opens the accordion section named `name` and closes all others.
-   * @param {'rides'|'poi'|'planner'} name
+   * @param {'rides'|'poi'|'planner'|'nearby'} name
    */
   openSection(name) {
     this.querySelectorAll('.accordion-section').forEach(section => {
@@ -69,6 +72,9 @@ export class AppSidebarComponent extends HTMLElement {
 
   /** @returns {import('./AppSettingsComponent.js').AppSettingsComponent} */
   get settings() { return this.#settings; }
+
+  /** @returns {import('./NearbyPlacesPanel.js').NearbyPlacesPanel} */
+  get nearbyPlaces() { return this.#nearbyPlaces; }
 
   // ── private ──────────────────────────────────────────────────────────────
 
@@ -104,15 +110,26 @@ export class AppSidebarComponent extends HTMLElement {
         </div>
       </div>
 
+      <div class="accordion-section" data-section="nearby">
+        <button class="accordion-header">
+          <span>Nearby Places</span>
+          ${AppSidebarComponent.#arrowSvg()}
+        </button>
+        <div class="accordion-body">
+          <nearby-places></nearby-places>
+        </div>
+      </div>
+
       <div class="sidebar-bottom">
         <app-settings></app-settings>
       </div>
     `;
 
-    this.#tripList    = this.querySelector('trip-list');
-    this.#poiList     = this.querySelector('poi-list');
+    this.#tripList     = this.querySelector('trip-list');
+    this.#poiList      = this.querySelector('poi-list');
     this.#routePlanner = this.querySelector('route-planner');
-    this.#settings    = this.querySelector('app-settings');
+    this.#settings     = this.querySelector('app-settings');
+    this.#nearbyPlaces = this.querySelector('nearby-places');
   }
 
   #bindAccordion() {

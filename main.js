@@ -20,6 +20,7 @@ import './src/components/PoiListComponent.js';
 import './src/components/AppSidebarComponent.js';
 import './src/components/RoutePlannerComponent.js';
 import './src/components/AppSettingsComponent.js';
+import './src/components/NearbyPlacesPanel.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -38,6 +39,13 @@ class App {
    * @type {Array<{distanceKm: number, durationMin: number, legs: object[], routePath: object[], hasTolls: boolean}>}
    */
   #lastRouteSummaries = [];
+
+  /**
+   * The dense route path of the currently active route, used to refresh the
+   * nearby-places search when the user toggles a category filter.
+   * @type {Array<{lat: number, lng: number}>}
+   */
+  #lastRoutePath = [];
 
   constructor() {
     this.#urlState  = new UrlStateManager();
@@ -115,10 +123,17 @@ class App {
           planner.setStatus(`Route ${index + 1}: ${km} km · ${dur} · ${count} fuel station${count === 1 ? '' : 's'}`);
         }
       } catch { /* non-critical */ }
+
+      // Refresh nearby places for the newly active route path.
+      this.#refreshNearbyPlaces(summary.routePath).catch(() => {});
     });
 
     // Wire settings change events (bubbled from <app-settings> inside the sidebar)
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
+
+    // Wire nearby-places events
+    this.#sidebar.addEventListener('nearby-place-focus',     e => this.#onNearbyPlaceFocus(e));
+    this.#sidebar.addEventListener('nearby-category-toggle', e => this.#onNearbyCategoryToggle(e));
   }
 
   // ── private helpers ──────────────────────────────────────────────────────
@@ -161,6 +176,9 @@ class App {
           planner.setStatus(`Route: ${km} km · ${duration} · ${count} fuel station${count === 1 ? '' : 's'}`);
         }
       } catch { /* non-critical */ }
+
+      // Refresh nearby places for the recalculated route (background).
+      this.#refreshNearbyPlaces(primary.routePath).catch(() => {});
     } catch (err) {
       console.error('Route recalculation failed', err);
       planner.setStatus('Failed to recalculate route.', true);
@@ -299,6 +317,9 @@ class App {
       } catch {
         // Fuel station search failing is non-critical — route is still shown.
       }
+
+      // Kick off nearby-places search in the background (non-blocking).
+      this.#refreshNearbyPlaces(primary.routePath).catch(() => {});
     } catch (err) {
       console.error('Route planning failed', err);
       planner.setStatus('Failed to calculate route.', true);
@@ -327,6 +348,9 @@ class App {
         planner.setStatus(`Route ${index + 1}: ${km} km · ${dur} · ${count} fuel station${count === 1 ? '' : 's'}`);
       }
     } catch { /* non-critical */ }
+
+    // Refresh nearby places for the newly active route path.
+    this.#refreshNearbyPlaces(summary.routePath).catch(() => {});
   }
 
   /**
@@ -420,7 +444,10 @@ class App {
   #onRouteClear() {
     this.#map.clearPlannedRoute();
     this.#map.clearFuelStations();
+    this.#map.clearNearbyPlaces();
     this.#map.disablePickMode();
+    this.#lastRoutePath = [];
+    this.#sidebar.nearbyPlaces?.clear();
   }
 
   /**
@@ -439,6 +466,59 @@ class App {
     }
     if (key === 'darkMap') {
       this.#map.setDarkMap(value);
+    }
+  }
+
+  // ── nearby places handlers ────────────────────────────────────────────────
+
+  /**
+   * Pans the map to the selected nearby place and opens its InfoWindow.
+   * @param {CustomEvent} e — detail: { placeId: string }
+   */
+  #onNearbyPlaceFocus({ detail: { placeId } }) {
+    this.#map.focusNearbyPlace(placeId);
+  }
+
+  /**
+   * Re-runs the nearby-places search when the user toggles a category chip,
+   * so that newly enabled categories are fetched while disabled ones are hidden.
+   * When a category is disabled the map markers for that category are hidden
+   * immediately; when re-enabled they are shown again (or fetched if needed).
+   *
+   * @param {CustomEvent} e — detail: { categoryId: string, enabled: boolean }
+   */
+  async #onNearbyCategoryToggle({ detail: { categoryId, enabled } }) {
+    // Always update marker visibility on the map immediately.
+    this.#map.setNearbyPlaceCategoryVisibility(categoryId, enabled);
+
+    // Only re-fetch when the user enables a category (to load new results that
+    // may not have been fetched yet).  Disabling is already handled visually
+    // both in the panel and now on the map via setNearbyPlaceCategoryVisibility.
+    if (enabled && this.#lastRoutePath.length > 0) {
+      await this.#refreshNearbyPlaces(this.#lastRoutePath);
+    }
+  }
+
+  /**
+   * Searches for nearby places along `routePath`, updates the sidebar panel,
+   * and auto-opens the "Nearby Places" section.
+   *
+   * @param {Array<{lat: number, lng: number}>} routePath
+   */
+  async #refreshNearbyPlaces(routePath) {
+    const panel = this.#sidebar.nearbyPlaces;
+    if (!panel) return;
+
+    this.#lastRoutePath = routePath;
+    panel.setLoading(true);
+    this.#sidebar.openSection('nearby');
+
+    try {
+      const places = await this.#map.showNearbyPlaces(routePath);
+      panel.setPlaces(places);
+    } catch (err) {
+      console.warn('Nearby places search failed', err);
+      panel.setPlaces([]);
     }
   }
 

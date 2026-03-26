@@ -1,12 +1,13 @@
-import { EventEmitter }        from '../core/EventEmitter.js';
-import { assignTripColors }    from '../core/ColorUtils.js';
-import { MapLoader }           from './MapLoader.js';
-import { TripRenderer }        from './TripRenderer.js';
-import { PoiRenderer }         from './PoiRenderer.js';
-import { RouteRenderer }       from './RouteRenderer.js';
-import { FuelStationRenderer } from './FuelStationRenderer.js';
-import { TripRepository }      from '../data/TripRepository.js';
-import { PoiRepository }       from '../data/PoiRepository.js';
+import { EventEmitter }           from '../core/EventEmitter.js';
+import { assignTripColors }       from '../core/ColorUtils.js';
+import { MapLoader }              from './MapLoader.js';
+import { TripRenderer }           from './TripRenderer.js';
+import { PoiRenderer }            from './PoiRenderer.js';
+import { RouteRenderer }          from './RouteRenderer.js';
+import { FuelStationRenderer }    from './FuelStationRenderer.js';
+import { NearbyPlacesRenderer }   from './NearbyPlacesRenderer.js';
+import { TripRepository }         from '../data/TripRepository.js';
+import { PoiRepository }          from '../data/PoiRepository.js';
 
 /** Default map centre (Zagreb, Croatia). */
 const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
@@ -78,6 +79,9 @@ export class MapController extends EventEmitter {
 
   /** @type {FuelStationRenderer|null} */
   #fuelRenderer = null;
+
+  /** @type {NearbyPlacesRenderer|null} */
+  #nearbyPlacesRenderer = null;
 
   /** @type {TripRenderer|null} */
   #tripRenderer = null;
@@ -275,6 +279,43 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Searches for prominent places along `routePath`, renders their markers,
+   * and returns a structured list for the sidebar panel.
+   *
+   * @param {Array<{lat: number, lng: number}>} routePath
+   *   Dense path array from the last route summary.
+   * @param {string[]} [enabledCategories]
+   *   Optional subset of category IDs to include.
+   * @returns {Promise<import('./NearbyPlacesRenderer.js').NearbyPlace[]>}
+   */
+  async showNearbyPlaces(routePath, enabledCategories) {
+    if (!this.#nearbyPlacesRenderer) return [];
+    return this.#nearbyPlacesRenderer.render(routePath, enabledCategories);
+  }
+
+  /** Removes all nearby-place markers from the map. */
+  clearNearbyPlaces() {
+    this.#nearbyPlacesRenderer?.clear();
+  }
+
+  /**
+   * Shows or hides map markers for a specific nearby-place category.
+   * @param {string}  categoryId
+   * @param {boolean} visible
+   */
+  setNearbyPlaceCategoryVisibility(categoryId, visible) {
+    this.#nearbyPlacesRenderer?.setMarkerVisibility(categoryId, visible);
+  }
+
+  /**
+   * Pans to the nearby place with the given id and opens its InfoWindow.
+   * @param {string} placeId
+   */
+  focusNearbyPlace(placeId) {
+    this.#nearbyPlacesRenderer?.focusPlace(placeId);
+  }
+
+  /**
    * Shows or hides the directional arrow icons on all trip polylines.
    * @param {boolean} enabled
    */
@@ -395,8 +436,9 @@ export class MapController extends EventEmitter {
       if (this.#pendingAltPolylineClickHandler) {
         this.#routeRenderer.setAltPolylineClickHandler(this.#pendingAltPolylineClickHandler);
       }
-      this.#fuelRenderer  = new FuelStationRenderer(this.#map, this.#openInfoWindow);
-      this.#geocoder      = new google.maps.Geocoder();
+      this.#fuelRenderer          = new FuelStationRenderer(this.#map, this.#openInfoWindow);
+      this.#nearbyPlacesRenderer  = new NearbyPlacesRenderer(this.#map, this.#openInfoWindow);
+      this.#geocoder              = new google.maps.Geocoder();
 
       if (trips.length > 0) this.#fitToAllTrips();
     } catch (err) {
