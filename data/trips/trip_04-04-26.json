@@ -1,0 +1,56 @@
+{
+  "id": "trip_04-04-26",
+  "title": "Looking for a new places",
+  "date": "2026-04-04",
+  "waypoints": [
+    {
+      "lat": 45.81314454115758,
+      "lng": 15.956034141568503,
+      "isVisible": true
+    },
+    {
+      "lat": 45.77594267363692,
+      "lng": 16.16686664695735,
+      "isVisible": true
+    },
+    {
+      "lat": 45.77684062628569,
+      "lng": 16.154292451095532
+    },
+    {
+      "lat": 45.825833,
+      "lng": 16.234167,
+      "label": "Martin breg"
+    },
+    {
+      "lat": 45.9218375,
+      "lng": 16.1394263
+    },
+    {
+      "lat": 45.8282659,
+      "lng": 16.0988146,
+      "label": "INA"
+    },
+    {
+      "lat": 45.8809383,
+      "lng": 16.0321499
+    },
+    {
+      "lat": 45.8620774,
+      "lng": 15.9854367
+    },
+    {
+      "lat": 45.8542637,
+      "lng": 15.952133,
+      "isVisible": true
+    },
+    {
+      "lat": 45.81314454115758,
+      "lng": 15.956034141568503,
+      "isVisible": true
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": false
+}
