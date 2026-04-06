@@ -43,6 +43,20 @@
       "lng": 16.33427143003812,
       "title": "Varazdin Castle",
       "description": "Good enought to visit 2nd time"
+    },
+    {
+      "type": "Campsite",
+      "lat": 45.362471963883735,
+      "lng": 15.68886986983226,
+      "title": "Campsite",
+      "description": "Bogata Suma - beautiful place to get some rest"
+    },
+    {
+      "type": "Campsite",
+      "lat": 45.40885966752349,
+      "lng": 15.477639406235683,
+      "title": "Campsite",
+      "description": "GreenRiver - nice place, little bit expensive"
     }
   ]
 }
