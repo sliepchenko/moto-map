@@ -1,0 +1,37 @@
+{
+  "id": "trip_06-04-26",
+  "title": "Investigate Campsite Bogata Suma and Mrežnica ",
+  "date": "2026-04-06",
+  "waypoints": [
+    {
+      "lat": 45.81314454115758,
+      "lng": 15.956034141568503,
+      "isVisible": true
+    },
+    {
+      "lat": 45.3625063,
+      "lng": 15.6888393,
+      "isVisible": true,
+      "label": "Campsite Bogata Suma"
+    },
+    {
+      "lat": 45.4087536,
+      "lng": 15.4776349,
+      "label": "Robinzonski kamp GreenRiver"
+    },
+    {
+      "lat": 45.4571676,
+      "lng": 15.4907459,
+      "isVisible": true,
+      "label": "INA Duga Resa"
+    },
+    {
+      "lat": 45.81314454115758,
+      "lng": 15.956034141568503,
+      "isVisible": true
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": false
+}
