@@ -57,6 +57,20 @@
       "lng": 15.477639406235683,
       "title": "Campsite",
       "description": "GreenRiver - nice place, little bit expensive"
+    },
+    {
+      "type": "cafe",
+      "lat": 45.7163654,
+      "lng": 16.0688039,
+      "title": "Park Caffe",
+      "description": "Cafe in the center of Velika Gorica, meet here with a friends :)"
+    },
+    {
+      "type": "cafe",
+      "lat": 45.3383632,
+      "lng": 15.9001927,
+      "title": "Mlin i pekare",
+      "description": "Coffee point, just a regular place"
     }
   ]
 }
