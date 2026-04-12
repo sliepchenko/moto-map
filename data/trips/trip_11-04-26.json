@@ -49,6 +49,7 @@
       "label": "Ina Fresh Corner - Refuel",
       "isVisible": true
     },
+    { "lat": 45.82551344554476, "lng": 16.011950855797362 },
     { "lat": 45.81314454115758, "lng": 15.956034141568503 }
   ],
   "avoidHighways": true,

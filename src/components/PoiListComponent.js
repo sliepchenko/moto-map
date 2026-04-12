@@ -10,6 +10,8 @@ const POI_EMOJI = {
   water:     '💧',
   viewpoint: '🔭',
   castle:    '🏰',
+  abadoned:  '🏚',
+  forest:    '🌳',
 };
 
 /**
