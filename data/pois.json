@@ -45,14 +45,14 @@
       "description": "Good enought to visit 2nd time"
     },
     {
-      "type": "Campsite",
+      "type": "campsite",
       "lat": 45.362471963883735,
       "lng": 15.68886986983226,
       "title": "Campsite",
       "description": "Bogata Suma - beautiful place to get some rest"
     },
     {
-      "type": "Campsite",
+      "type": "campsite",
       "lat": 45.40885966752349,
       "lng": 15.477639406235683,
       "title": "Campsite",
@@ -73,18 +73,18 @@
       "description": "Coffee point, just a regular place"
     },
     {
+      "type": "cafe",
       "lat": 44.96963612184829,
       "lng": 15.651820944615302,
       "label": "Zeljava",
-      "description": "Abadoned Airport, interesting place",
-      "isVisible": true
+      "description": "Abadoned Airport, interesting place"
     },
     {
+      "type": "water",
       "lat": 44.880505,
       "lng": 15.618949,
       "label": "Plitvice Jezera",
-      "description": "Nice place, but just touched this time",
-      "isVisible": true
+      "description": "Nice place, but just touched this time"
     }
   ]
 }
