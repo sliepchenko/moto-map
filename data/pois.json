@@ -71,6 +71,20 @@
       "lng": 15.9001927,
       "title": "Mlin i pekare",
       "description": "Coffee point, just a regular place"
+    },
+    {
+      "lat": 44.96963612184829,
+      "lng": 15.651820944615302,
+      "label": "Zeljava",
+      "description": "Abadoned Airport, interesting place",
+      "isVisible": true
+    },
+    {
+      "lat": 44.880505,
+      "lng": 15.618949,
+      "label": "Plitvice Jezera",
+      "description": "Nice place, but just touched this time",
+      "isVisible": true
     }
   ]
 }
