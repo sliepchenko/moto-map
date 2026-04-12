@@ -73,7 +73,7 @@
       "description": "Coffee point, just a regular place"
     },
     {
-      "type": "cafe",
+      "type": "abadoned",
       "lat": 44.96963612184829,
       "lng": 15.651820944615302,
       "label": "Zeljava",
