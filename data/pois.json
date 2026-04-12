@@ -74,10 +74,17 @@
     },
     {
       "type": "abadoned",
-      "lat": 44.96963612184829,
-      "lng": 15.651820944615302,
+      "lat": 44.85754331525494,
+      "lng": 15.736256947937834,
+      "label": "Douglas C-47 B Dakota 71212 YAF",
+      "description": "Abadoned Plane"
+    },
+    {
+      "type": "abadoned",
+      "lat": 44.83696055163973,
+      "lng": 15.75731794983347,
       "label": "Zeljava",
-      "description": "Abadoned Airport, interesting place"
+      "description": "Abadoned Military Airport"
     },
     {
       "type": "water",
