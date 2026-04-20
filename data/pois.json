@@ -80,21 +80,21 @@
       "lat": "44.85754331525494",
       "lng": "15.736256947937834",
       "address": "VP5P+28, Željava",
-      "label": "Abadoned Plane",
+      "title": "Abadoned Plane",
       "description": "Douglas C-47 B Dakota 71212 YAF, USA airplane which was gaven to Yugoslavia"
     },
     {
       "type": "abadoned",
       "lat": "44.83696055163973",
       "lng": "15.75731794983347",
-      "label": "Abadoned Military Airport",
+      "title": "Abadoned Military Airport",
       "description": "Zeljava - abadoned amilitary airport which wass destroyed anbd abadoned in war"
     },
     {
       "type": "water",
       "lat": "44.880505",
       "lng": "15.618949",
-      "label": "Plitvice Jezera",
+      "title": "Plitvice Jezera",
       "description": "Nice place, but just touched this time"
     },
     {
@@ -102,15 +102,16 @@
       "lat": "46.25774032228677",
       "lng": "15.945756933106455",
       "address": "VP5P+28, Željava",
-      "label": "Renovated Castle",
+      "title": "Renovated Castle",
       "description": "Nice place with lake for whole family"
     },
     {
       "type": "cafe",
       "lat": "46.22853897028871",
       "lng": "15.922496544870729",
-      "adress": "Nice view tasty and cheap food",
-      "label": "Farm with restaraunt"
+      "address": "Pašnik 42A, 42253, Pašnik",
+      "title": "Farm with restaraunt",
+      "description": "Nice view tasty and cheap food"
     }
   ]
 }
