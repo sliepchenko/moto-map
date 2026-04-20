@@ -1,0 +1,15 @@
+{
+  "id": "trip_18-04-26",
+  "title": "Saturday trip",
+  "date": "2026-04-11",
+  "waypoints": [
+    { "lat": 45.81314454115758, "lng": 15.956034141568503, "isVisible": true },
+    { "lat": 45.94210534984843, "lng": 15.9061786763033532 },
+    { "lat": 46.25774032228677, "lng": 15.945756933106455, "label": "Renovated Castle - Nice place for whole family", "isVisible": true },
+    { "lat": 46.22853897028871, "lng": 15.922496544870729, "label": "Farm with restaraunt - Simple food but tasty and cheap", "isVisible": true },
+    { "lat": 45.81314454115758, "lng": 15.956034141568503 }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": true
+}

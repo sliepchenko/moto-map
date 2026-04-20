@@ -2,96 +2,115 @@
   "pois": [
     {
       "type": "cafe",
-      "lat": 45.89853422379965,
-      "lng": 15.94818563731715,
+      "lat": "45.89853422379965",
+      "lng": "15.94818563731715",
       "title": "Coffee Stop",
       "description": "Good option to take a break before go to Zagorje"
     },
     {
       "type": "cafe",
-      "lat": 45.949504671275186,
-      "lng": 15.850051670783373,
+      "lat": "45.949504671275186",
+      "lng": "15.850051670783373",
+      "address": "Stubička 4c, 10297, Jakovlje",
       "title": "Coffee stop",
-      "description": "Just a coffee stop, nothing special",
-      "address": "Stubička 4c, 10297, Jakovlje"
+      "description": "Just a coffee stop, nothing special"
     },
     {
       "type": "viewpoint",
-      "lat": 45.890193504135645,
-      "lng": 15.956643804511462,
+      "lat": "45.890193504135645",
+      "lng": "15.956643804511462",
       "title": "Viewpoint",
       "description": "You can rest here, if you have some food or a coffee, take a chance and rest"
     },
     {
       "type": "cafe",
-      "lat": 45.69919231214668,
-      "lng": 16.07357256518775,
-      "title": "Coffee Stop",
+      "lat": "45.69919231214668",
+      "lng": "16.07357256518775",
       "address": "Ul. Stjepana Fabijančića Jape 116, 10410, Velika Gorica",
+      "title": "Coffee Stop",
       "description": "Nice cafe, but they are accepting only cash!"
     },
     {
       "type": "water",
-      "lat": 45.707897027360616,
-      "lng": 16.09950715726359,
+      "lat": "45.707897027360616",
+      "lng": "16.09950715726359",
       "title": "Čiče lake",
       "description": "Nice calm place, pretty nice for brake"
     },
     {
       "type": "castle",
-      "lat": 46.310097976191564,
-      "lng": 16.33427143003812,
+      "lat": "46.310097976191564",
+      "lng": "16.33427143003812",
+      "address": "Šetalište Josipa Jurja Strossmayera 1, 42000, Varaždin",
       "title": "Varazdin Castle",
       "description": "Good enought to visit 2nd time"
     },
     {
       "type": "campsite",
-      "lat": 45.362471963883735,
-      "lng": 15.68886986983226,
+      "lat": "45.362471963883735",
+      "lng": "15.68886986983226",
+      "address": "Živković Kosa 11, 47220, Živković Kosa",
       "title": "Campsite",
       "description": "Bogata Suma - beautiful place to get some rest"
     },
     {
       "type": "campsite",
-      "lat": 45.40885966752349,
-      "lng": 15.477639406235683,
+      "lat": "45.40885966752349",
+      "lng": "15.477639406235683",
       "title": "Campsite",
       "description": "GreenRiver - nice place, little bit expensive"
     },
     {
       "type": "cafe",
-      "lat": 45.7163654,
-      "lng": 16.0688039,
+      "lat": "45.7163654",
+      "lng": "16.0688039",
       "title": "Park Caffe",
       "description": "Cafe in the center of Velika Gorica, meet here with a friends :)"
     },
     {
       "type": "cafe",
-      "lat": 45.3383632,
-      "lng": 15.9001927,
+      "lat": "45.3383632",
+      "lng": "15.9001927",
+      "address": "D6 7, 44410, Donja Čemernica",
       "title": "Mlin i pekare",
       "description": "Coffee point, just a regular place"
     },
     {
       "type": "abadoned",
-      "lat": 44.85754331525494,
-      "lng": 15.736256947937834,
-      "label": "Douglas C-47 B Dakota 71212 YAF",
-      "description": "Abadoned Plane"
+      "lat": "44.85754331525494",
+      "lng": "15.736256947937834",
+      "address": "VP5P+28, Željava",
+      "label": "Abadoned Plane",
+      "description": "Douglas C-47 B Dakota 71212 YAF, USA airplane which was gaven to Yugoslavia"
     },
     {
       "type": "abadoned",
-      "lat": 44.83696055163973,
-      "lng": 15.75731794983347,
-      "label": "Zeljava",
-      "description": "Abadoned Military Airport"
+      "lat": "44.83696055163973",
+      "lng": "15.75731794983347",
+      "label": "Abadoned Military Airport",
+      "description": "Zeljava - abadoned amilitary airport which wass destroyed anbd abadoned in war"
     },
     {
       "type": "water",
-      "lat": 44.880505,
-      "lng": 15.618949,
+      "lat": "44.880505",
+      "lng": "15.618949",
       "label": "Plitvice Jezera",
       "description": "Nice place, but just touched this time"
+    },
+    {
+      "type": "castle",
+      "lat": "46.25774032228677",
+      "lng": "15.945756933106455",
+      "address": "VP5P+28, Željava",
+      "label": "Renovated Castle",
+      "description": "Nice place with lake for whole family"
+    },
+    {
+      "type": "cafe",
+      "lat": "46.22853897028871",
+      "lng": "15.922496544870729",
+      "adress": "Nice view tasty and cheap food",
+      "label": "Farm with restaraunt"
     }
   ]
 }
