@@ -26,8 +26,8 @@ export class NearbyPlacesPanel extends HTMLElement {
   /** @type {import('../map/NearbyPlacesRenderer.js').NearbyPlace[]} */
   #places = [];
 
-  /** @type {Set<string>} Category IDs currently shown */
-  #enabledCategories = new Set(PLACE_CATEGORIES.map(c => c.id));
+  /** @type {Set<string>} Category IDs currently shown (only fuel enabled by default) */
+  #enabledCategories = new Set(['fuel']);
 
   /** @type {boolean} */
   #loading = false;

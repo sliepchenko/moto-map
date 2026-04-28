@@ -459,6 +459,8 @@ Same `PlacesService` approach, specifically for `gas_station` type. Automaticall
 
 `NearbyPlacesPanel` emits `nearby-category-toggle { categoryId, enabled }`. App calls `MapController.setNearbyPlaceCategoryVisibility()` to show/hide markers on the map immediately, and re-fetches only when enabling (to load results not yet fetched).
 
+**Default enabled categories:** Only `fuel` (Fuel Stations) is enabled by default when the route planner shows nearby places. All other categories are disabled by default and must be toggled on by the user.
+
 ---
 
 ## Settings System
