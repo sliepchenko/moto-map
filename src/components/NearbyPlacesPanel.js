@@ -86,7 +86,7 @@ export class NearbyPlacesPanel extends HTMLElement {
     if (this.#places.length === 0) {
       this.innerHTML = `
         <div class="np-empty">
-          Plan a route to discover viewpoints, cafes, hotels and more along the way.
+          Plan a route to discover tourist places, viewpoints, cafes, hotels, parkings, fuel stations and more along the way.
         </div>
       `;
       return;

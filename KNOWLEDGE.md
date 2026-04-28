@@ -437,12 +437,14 @@ Searches at sample points along the route using `google.maps.places.PlacesServic
 | ID | Places API type | Label |
 |---|---|---|
 | `viewpoint` | `point_of_interest` + keyword | Viewpoints |
-| `tourist_attraction` | `tourist_attraction` | Attractions |
+| `tourist_places` | `tourist_attraction` + keyword "tourist places" | Tourist Places |
 | `cafe` | `cafe` | Cafes |
 | `restaurant` | `restaurant` | Restaurants |
 | `hotel` | `lodging` | Hotels |
 | `museum` | `museum` | Museums |
 | `natural_feature` | `natural_feature` | Nature |
+| `parking` | `parking` | Parkings |
+| `fuel` | `gas_station` | Fuel Stations |
 
 Results are deduplicated by `place_id`. Markers carry category color badges. Each InfoWindow has an "Add to Route" button that inserts the place as a waypoint in the planner.
 

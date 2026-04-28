@@ -8,12 +8,14 @@
  *
  * Supported place categories (mapped to Places API types):
  *   viewpoint        → point_of_interest (keyword: viewpoint)
+ *   tourist_places   → tourist_attraction (keyword: tourist places)
  *   cafe             → cafe
  *   restaurant       → restaurant
  *   hotel            → lodging
  *   museum           → museum
- *   tourist_attraction → tourist_attraction
  *   natural_feature  → natural_feature
+ *   parking          → parking
+ *   fuel             → gas_station
  *
  * SOLID notes:
  *  - SRP: only responsible for nearby-place search and marker rendering;
@@ -33,13 +35,15 @@ const SAMPLE_INTERVAL_M = 15_000;  // one sample every ~15 km
  * `icon` URL (asset), a display `label`, and a `color` for the marker badge.
  */
 const PLACE_CATEGORIES = [
-  { id: 'viewpoint',         type: 'point_of_interest', keyword: 'viewpoint',          icon: 'assets/icons/viewpoint.svg',  label: 'Viewpoints',      color: '#22c55e' },
-  { id: 'tourist_attraction',type: 'tourist_attraction', keyword: null,                 icon: 'assets/icons/castle.svg',     label: 'Attractions',     color: '#a78bfa' },
-  { id: 'cafe',              type: 'cafe',               keyword: null,                 icon: 'assets/icons/cafe.svg',       label: 'Cafes',           color: '#f59e0b' },
-  { id: 'restaurant',        type: 'restaurant',         keyword: null,                 icon: 'assets/icons/cafe.svg',       label: 'Restaurants',     color: '#fb923c' },
-  { id: 'hotel',             type: 'lodging',            keyword: null,                 icon: 'assets/icons/hotel.svg',      label: 'Hotels',          color: '#38bdf8' },
-  { id: 'museum',            type: 'museum',             keyword: null,                 icon: 'assets/icons/castle.svg',     label: 'Museums',         color: '#e879f9' },
-  { id: 'natural_feature',   type: 'natural_feature',    keyword: null,                 icon: 'assets/icons/water.svg',      label: 'Nature',          color: '#34d399' },
+  { id: 'viewpoint',       type: 'point_of_interest', keyword: 'viewpoint',       icon: 'assets/icons/viewpoint.svg', label: 'Viewpoints',      color: '#22c55e' },
+  { id: 'tourist_places',  type: 'tourist_attraction', keyword: 'tourist places', icon: 'assets/icons/castle.svg',    label: 'Tourist Places',  color: '#a78bfa' },
+  { id: 'cafe',            type: 'cafe',               keyword: null,              icon: 'assets/icons/cafe.svg',      label: 'Cafes',           color: '#f59e0b' },
+  { id: 'restaurant',      type: 'restaurant',         keyword: null,              icon: 'assets/icons/cafe.svg',      label: 'Restaurants',     color: '#fb923c' },
+  { id: 'hotel',           type: 'lodging',            keyword: null,              icon: 'assets/icons/hotel.svg',     label: 'Hotels',          color: '#38bdf8' },
+  { id: 'museum',          type: 'museum',             keyword: null,              icon: 'assets/icons/castle.svg',    label: 'Museums',         color: '#e879f9' },
+  { id: 'natural_feature', type: 'natural_feature',    keyword: null,              icon: 'assets/icons/water.svg',     label: 'Nature',          color: '#34d399' },
+  { id: 'parking',         type: 'parking',            keyword: null,              icon: 'assets/icons/viewpoint.svg', label: 'Parkings',        color: '#94a3b8' },
+  { id: 'fuel',            type: 'gas_station',        keyword: null,              icon: 'assets/icons/fuel.svg',      label: 'Fuel Stations',   color: '#f97316' },
 ];
 
 export { PLACE_CATEGORIES };
