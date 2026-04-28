@@ -359,10 +359,21 @@ UrlStateManager  (popstate listener)
 `ColorUtils.assignTripColors(trips)` adds a `_color` property to each trip object.
 
 - Trips are expected sorted by date ascending before this function is called.
-- Gradient has 3 stops: `#6b7280` (oldest) → `#166534` (middle) → `#22c55e` (newest).
-- Position in the gradient is determined by date, not by array index.
-- A trip with a `color` field in its JSON skips the gradient and uses that color directly.
+- Colors are assigned by **recency rank** (not a continuous gradient):
+
+| Rank | Color | Description |
+|---|---|---|
+| 0 (newest) | `#5FC25E` | Most recent ride |
+| 1 | `#7BB37A` | 2nd most recent |
+| 2 | `#93A492` | 3rd most recent |
+| 3 | `#A6A6A6` | 4th most recent |
+| 4 | `#C2C2C2` | 5th most recent |
+| 5 | `#D9D9D9` | 6th most recent |
+| 6+ | `#D9D9D9` | All older rides (fallback) |
+
+- A trip with a `color` field in its JSON skips the palette and uses that color directly.
 - The `_color` property is not persisted — it is recomputed on every load.
+- To change the palette, edit `RECENCY_PALETTE` in `src/core/ColorUtils.js`.
 
 ---
 

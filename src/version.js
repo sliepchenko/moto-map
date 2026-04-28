@@ -6,4 +6,4 @@
  *
  * Format: ISO 8601 datetime string (YYYY-MM-DD HH:MM).
  */
-export const APP_VERSION_DATE = '2026-04-28 14:30';
+export const APP_VERSION_DATE = '2026-04-28 15:00';

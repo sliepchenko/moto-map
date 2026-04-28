@@ -3,58 +3,46 @@
  *
  * SOLID notes:
  *  - SRP: pure colour math, no side-effects, no DOM/map references.
- *  - OCP: add more colour stops by extending COLOR_STOPS only.
+ *  - OCP: add or reorder palette colours by editing RECENCY_PALETTE only.
  */
 
 /**
- * Three-stop gradient used for trip age colouring.
- * oldest → gray-green, middle → dark green, newest → bright green.
- * @type {{ r: number, g: number, b: number }[]}
+ * Discrete recency palette — index 0 is the most recent ride, index 5 is
+ * the 6th-most-recent. Every ride older than that receives FALLBACK_COLOR.
+ *
+ * @type {string[]}
  */
-const COLOR_STOPS = [
-  { r: 107, g: 124, b: 110 }, // #6b7c6e — gray-green  (oldest)
-  { r:  22, g: 101, b:  52 }, // #166534 — dark green  (middle)
-  { r:  34, g: 197, b:  94 }, // #22c55e — bright green (newest)
+const RECENCY_PALETTE = [
+  '#5FC25E', // most recent  (1st)
+  '#7BB37A', // 2nd most recent
+  '#93A492', // 3rd
+  '#A6A6A6', // 4th
+  '#C2C2C2', // 5th
+  '#D9D9D9', // 6th
 ];
 
+/** Color used for any ride older than the palette covers. */
+const FALLBACK_COLOR = '#D9D9D9';
+
 /**
- * Interpolates a CSS hex colour across {@link COLOR_STOPS} based on a
- * normalised position `t ∈ [0, 1]`.
+ * Assigns a `_color` property to each trip based on its recency rank.
  *
- * @param {number} t - normalised position; 0 = oldest, 1 = newest
- * @returns {string} hex colour string, e.g. `'#3a8f5c'`
- */
-export function lerpColor(t) {
-  const segments = COLOR_STOPS.length - 1;
-  const scaled   = Math.min(t * segments, segments - 1e-10);
-  const idx      = Math.floor(scaled);
-  const u        = scaled - idx;
-
-  const a = COLOR_STOPS[idx];
-  const b = COLOR_STOPS[idx + 1];
-
-  const r  = Math.round(a.r + (b.r - a.r) * u);
-  const g  = Math.round(a.g + (b.g - a.g) * u);
-  const bv = Math.round(a.b + (b.b - a.b) * u);
-
-  return '#' + [r, g, bv].map(c => c.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Assigns a `_color` property to each trip based on its date using the
- * three-stop gradient. A manual `trip.color` field takes precedence.
+ * The newest trip receives `RECENCY_PALETTE[0]`, the previous trip receives
+ * `RECENCY_PALETTE[1]`, and so on. Any trip beyond the palette length
+ * receives `FALLBACK_COLOR`. A manual `trip.color` field takes precedence.
  *
  * @param {Object[]} trips - must be sorted by date ascending before calling
  */
 export function assignTripColors(trips) {
-  const timestamps = trips.map(t => new Date(t.date).getTime());
-  const min   = Math.min(...timestamps);
-  const max   = Math.max(...timestamps);
-  const range = max - min;
+  const total = trips.length;
 
   trips.forEach((trip, i) => {
-    trip._color = trip.color
-      ? trip.color
-      : lerpColor(range === 0 ? 0 : (timestamps[i] - min) / range);
+    if (trip.color) {
+      trip._color = trip.color;
+      return;
+    }
+    // Rank 0 = newest (last in ascending-sorted array), rank 1 = previous, …
+    const rank = total - 1 - i;
+    trip._color = rank < RECENCY_PALETTE.length ? RECENCY_PALETTE[rank] : FALLBACK_COLOR;
   });
 }
