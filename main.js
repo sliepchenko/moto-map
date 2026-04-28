@@ -393,6 +393,9 @@ class App {
       avoidHighways: avoidHighways ?? false,
       avoidTolls:    avoidTolls    ?? false,
       avoidFerries:  avoidFerries  ?? false,
+      // Road distance from the Google Directions API (accurate, follows actual roads).
+      // Used by estimateTripDistance() to display the correct distance in "My Rides".
+      roadDistanceKm: distanceKm ?? null,
     };
 
     const json = JSON.stringify(trip, null, 2);

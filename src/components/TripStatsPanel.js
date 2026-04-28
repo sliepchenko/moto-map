@@ -3,7 +3,8 @@
  * currently selected trip.
  *
  * Displayed stats:
- *  - Distance   (straight-line Haversine estimate, in km)
+ *  - Distance   (road distance from Google Directions API when available,
+ *                otherwise straight-line Haversine estimate, in km)
  *  - Est. duration (distance / assumed avg speed of 50 km/h)
  *  - Date       (formatted, same locale as TripListComponent)
  *

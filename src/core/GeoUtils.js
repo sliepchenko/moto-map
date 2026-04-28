@@ -26,13 +26,26 @@ export function haversineKm(a, b) {
 }
 
 /**
- * Estimates the total route length of a trip by summing Haversine distances
- * between consecutive waypoints.
+ * Returns the total road distance of a trip in kilometres.
  *
- * @param {{ waypoints: {lat:number,lng:number}[] }} trip
- * @returns {number} estimated distance in km
+ * Prefer `trip.roadDistanceKm` when it is available — this is the accurate
+ * value obtained from the Google Directions API at the time the route was
+ * saved and reflects the actual road geometry.
+ *
+ * Falls back to summing Haversine (straight-line) distances between
+ * consecutive waypoints for older trips that were saved before this field
+ * was introduced.  The Haversine result will always be shorter than the
+ * real road distance because it ignores road curvature.
+ *
+ * @param {{ waypoints: {lat:number,lng:number}[], roadDistanceKm?: number|null }} trip
+ * @returns {number} distance in km
  */
 export function estimateTripDistance(trip) {
+  if (trip.roadDistanceKm != null && trip.roadDistanceKm > 0) {
+    return trip.roadDistanceKm;
+  }
+
+  // Legacy fallback: straight-line sum of waypoint-to-waypoint segments.
   const pts = trip.waypoints;
   let total = 0;
   for (let i = 0; i < pts.length - 1; i++) {
