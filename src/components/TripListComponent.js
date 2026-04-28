@@ -1,6 +1,30 @@
 import { estimateTripDistance, estimateTripDuration } from '../core/GeoUtils.js';
 
 /**
+ * Builds a Google Maps Directions URL for the given trip waypoints.
+ * Uses the first waypoint as origin, last as destination, and all
+ * intermediate waypoints as pipe-separated stops.
+ *
+ * @param {Array<{lat: number, lng: number}>} waypoints
+ * @returns {string} Google Maps URL
+ */
+function buildGoogleMapsUrl(waypoints) {
+  if (waypoints.length < 2) return 'https://www.google.com/maps';
+  const origin      = `${waypoints[0].lat},${waypoints[0].lng}`;
+  const destination = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
+  const url = new URL('https://www.google.com/maps/dir/');
+  url.searchParams.set('api', '1');
+  url.searchParams.set('origin', origin);
+  url.searchParams.set('destination', destination);
+  url.searchParams.set('travelmode', 'driving');
+  if (waypoints.length > 2) {
+    const intermediates = waypoints.slice(1, -1).map(wp => `${wp.lat},${wp.lng}`);
+    url.searchParams.set('waypoints', intermediates.join('|'));
+  }
+  return url.toString();
+}
+
+/**
  * `<trip-list>` — renders the "My Rides" sidebar list.
  *
  * Each trip item expands an inline details panel directly beneath itself
@@ -87,6 +111,8 @@ export class TripListComponent extends HTMLElement {
     const distanceKm = estimateTripDistance(trip).toFixed(1);
     const duration   = estimateTripDuration(trip);
 
+    const gmapsUrl = buildGoogleMapsUrl(trip.waypoints ?? []);
+
     li.innerHTML = `
       <div class="trip-summary">
         <span class="trip-title">${trip.title}</span>
@@ -110,6 +136,12 @@ export class TripListComponent extends HTMLElement {
             <span class="trip-details-value">${date}</span>
           </li>
         </ul>
+        <a
+          class="trip-gmaps-btn"
+          href="${gmapsUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Open in Google Maps</a>
       </div>
     `;
 
@@ -122,6 +154,12 @@ export class TripListComponent extends HTMLElement {
         detail:   { id: newId },
       }));
     });
+
+    // Prevent the Google Maps link click from toggling the trip selection
+    const gmapsBtn = li.querySelector('.trip-gmaps-btn');
+    if (gmapsBtn) {
+      gmapsBtn.addEventListener('click', e => e.stopPropagation());
+    }
 
     return li;
   }

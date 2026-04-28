@@ -246,7 +246,7 @@ import './src/components/NearbyPlacesPanel.js';
 | Tag | Class | Responsibility |
 |---|---|---|
 | `<app-sidebar>` | `AppSidebarComponent` | Sidebar shell with accordion sections |
-| `<trip-list>` | `TripListComponent` | List of recorded trips; fires `trip-select` |
+| `<trip-list>` | `TripListComponent` | List of recorded trips; fires `trip-select`; "Open in Google Maps" button per trip |
 | `<poi-list>` | `PoiListComponent` | List of POIs; fires `poi-select` |
 | `<route-planner>` | `RoutePlannerComponent` | Waypoint inputs, avoid options, route summary cards |
 | `<app-settings>` | `AppSettingsComponent` | Toggles: route arrows, POI visibility, terrain, dark mode |
@@ -564,6 +564,8 @@ Paths are relative to the `data/` directory. Add new trips here — no JS change
 7. **`GeoUtils.haversineKm`** — implemented in `src/core/GeoUtils.js` but not yet wired to the UI (trip stats panel). Distance display in the sidebar currently uses `roadDistanceKm` from saved JSON or the raw `distance_km` field.
 
 8. **Service Worker** — `sw.js` is registered in `main.js`. The caching strategy should be verified and updated when new asset paths are added (e.g. new icon files or theme JSON files).
+
+11. **"Open in Google Maps" per trip** — each trip's expanded details panel contains a link that opens the trip in Google Maps Directions (`https://www.google.com/maps/dir/?api=1&...`). The URL is built in `buildGoogleMapsUrl()` (top of `TripListComponent.js`) using the first waypoint as origin, last as destination, and all intermediate waypoints as pipe-separated `waypoints` param. Clicking the link does **not** trigger trip selection (click propagation is stopped).
 
 9. **No trip editing** — trips are static JSON files. There is no in-app editor. To add/modify a trip, edit the JSON file directly and add it to the manifest.
 

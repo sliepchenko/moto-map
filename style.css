@@ -179,7 +179,7 @@ html, body {
 }
 
 .trip-details.open {
-  max-height: 200px;
+  max-height: 240px;
   opacity: 1;
 }
 
@@ -213,6 +213,25 @@ html, body {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.trip-gmaps-btn {
+  display: block;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: background 0.15s ease;
+}
+
+.trip-gmaps-btn:hover {
+  background: #15803d;
 }
 
 /* ── My POI list ──────────────────────────────────────────────────────────── */

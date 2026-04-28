@@ -80,6 +80,7 @@ There is no server, no database, and no authentication. The entire application i
 - Two **accordion sections**: "My Rides" (open by default) and "My POI".
 - Accordion toggle: clicking an open section closes it; clicking a closed section opens it and closes all others.
 - Trip list items show the trip title and formatted date. The active trip gets a green left border.
+- Clicking a trip expands an inline details panel showing distance, estimated time, date, and an **"Open in Google Maps"** button that opens the ride as a Directions route in a new tab.
 - POI list items show an emoji icon, title, and truncated description. The active POI is highlighted similarly.
 - Clicking a trip or POI fires a `CustomEvent` that bubbles to `App`.
 
