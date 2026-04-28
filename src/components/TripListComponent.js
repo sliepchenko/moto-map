@@ -120,7 +120,8 @@ export class TripListComponent extends HTMLElement {
     const ul = document.createElement('ul');
     ul.id = 'trip-list';
 
-    this.#trips.forEach(trip => {
+    // Display newest trips first (reverse of the ascending-date storage order).
+    [...this.#trips].reverse().forEach(trip => {
       const li = this.#createItem(trip);
       ul.appendChild(li);
     });

@@ -161,9 +161,14 @@ Three communication directions:
 
 1. Fetches `data/trips/index.json` (the manifest).
 2. Parallel-fetches all individual trip JSON files.
-3. Returns trips sorted ascending by date.
+3. Returns trips sorted ascending by date (oldest first — used for color gradient ordering).
 
 The manifest contains only relative paths — filenames are never hardcoded in JS.
+
+> **Display order vs. storage order:** `TripRepository` always returns trips sorted oldest→newest.
+> `TripListComponent` renders them in reverse (newest first at the top) so the most recent rides
+> appear at the top of the sidebar list. The color gradient is unaffected because it is computed
+> from the sorted array before display reversal.
 
 ### PoiRepository (`src/data/PoiRepository.js`)
 
@@ -466,7 +471,7 @@ Settings changes propagate via `setting-change { key, value }` event → `App.#o
 
 **Dark mode:** Implemented by fetching a different `theme.json` and calling `map.setOptions({ styles })`. The two theme files live at the project root.
 
-**Version label:** The bottom of the settings panel displays an "Updated: YYYY-MM-DD" label sourced from `src/version.js` (`APP_VERSION_DATE`). This date must be updated by the agent after every task — see AGENTS.md.
+**Version label:** The bottom of the settings panel displays an "Updated: YYYY-MM-DD HH:MM" label sourced from `src/version.js` (`APP_VERSION_DATE`). The value is stored as a UTC ISO 8601 string and converted to the user's local time by `AppSettingsComponent.#formatVersion()` before display. This value must be updated by the agent after every task — see AGENTS.md.
 
 ---
 
@@ -475,13 +480,13 @@ Settings changes propagate via `setting-change { key, value }` event → `App.#o
 The app uses a simple datetime-based versioning scheme:
 
 - **File:** `src/version.js`
-- **Export:** `APP_VERSION_DATE` — a datetime string (`YYYY-MM-DD HH:MM`)
-- **Display:** imported by `AppSettingsComponent` and rendered as `"Updated: YYYY-MM-DD HH:MM"` in the Settings panel footer
-- **Update rule:** every agent task that modifies application code or data must set `APP_VERSION_DATE` to today's date and current time
+- **Export:** `APP_VERSION_DATE` — a UTC ISO 8601 datetime string (`YYYY-MM-DDTHH:MM:SSZ`)
+- **Display:** imported by `AppSettingsComponent`; converted to the user's local time by `#formatVersion()` and rendered as `"Updated: YYYY-MM-DD HH:MM"` in the Settings panel footer
+- **Update rule:** every agent task that modifies application code or data must set `APP_VERSION_DATE` to the current UTC time (run `date -u +"%Y-%m-%dT%H:%M:%SZ"`)
 
 ```js
 // src/version.js
-export const APP_VERSION_DATE = '2026-04-28 09:47';
+export const APP_VERSION_DATE = '2026-04-28T09:14:52Z';
 ```
 
 No build step or semver is needed — the datetime alone is sufficient for a personal static project.

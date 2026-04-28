@@ -29,13 +29,16 @@ This is the AI's own knowledge storage (also readable by humans). Keep it up to 
 Only mark items as done if they were completed in the current task. Do **not** add new items or reorganize unless explicitly asked.
 
 ### src/version.js — MANDATORY after every task
-After every task that touches application code or data, update `APP_VERSION_DATE` in `src/version.js` to today's date and time in `YYYY-MM-DD HH:MM` format:
+After every task that touches application code or data, update `APP_VERSION_DATE` in `src/version.js`
+to the current UTC time as a UTC ISO 8601 string in `YYYY-MM-DDTHH:MM:SSZ` format:
 
 ```js
-export const APP_VERSION_DATE = 'YYYY-MM-DD HH:MM';   // ← set to today's date and current time
+export const APP_VERSION_DATE = 'YYYY-MM-DDTHH:MM:SSZ';   // ← set to current UTC date and time
 ```
 
-This value is displayed in the Settings panel as the "last updated" label visible to the user.
+Run `date -u +"%Y-%m-%dT%H:%M:%SZ"` to get the current UTC timestamp.
+
+The UI converts this UTC value to the user's local time before displaying it in the Settings panel.
 Do **not** skip this step — it is always required.
 
 ## Boundaries

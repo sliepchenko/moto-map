@@ -47,6 +47,18 @@ export class AppSettingsComponent extends HTMLElement {
     } catch { /* ignore storage errors */ }
   }
 
+  /** Convert the UTC ISO timestamp in APP_VERSION_DATE to local time for display. */
+  #formatVersion() {
+    try {
+      const d = new Date(APP_VERSION_DATE);
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
+           + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return APP_VERSION_DATE;
+    }
+  }
+
   #render() {
     this.innerHTML = `
       <button id="settings-btn" class="settings-btn" aria-label="Settings" title="Settings">
@@ -134,7 +146,7 @@ export class AppSettingsComponent extends HTMLElement {
           </div>
         </div>
 
-        <div class="settings-version">Updated: ${APP_VERSION_DATE}</div>
+        <div class="settings-version">Updated: ${this.#formatVersion()}</div>
       </div>
     `;
   }
