@@ -28,19 +28,26 @@ export function haversineKm(a, b) {
 /**
  * Returns the total road distance of a trip in kilometres.
  *
- * Prefer `trip.roadDistanceKm` when it is available — this is the accurate
- * value obtained from the Google Directions API at the time the route was
- * saved and reflects the actual road geometry.
+ * Priority order:
+ * 1. `trip._roadDistanceKm` — set at runtime by `TripRenderer` from the Directions
+ *    API response once the route path has been resolved.  Most accurate.
+ * 2. `trip.roadDistanceKm`  — persisted in the trip JSON by the Save Route feature.
+ *    Also accurate (same Directions API source), but only available for trips that
+ *    were saved through the planner.
+ * 3. Haversine sum          — straight-line distances between consecutive waypoints.
+ *    Always shorter than the real road distance; used only as a last resort for
+ *    legacy trips where neither of the above is available.
  *
- * Falls back to summing Haversine (straight-line) distances between
- * consecutive waypoints for older trips that were saved before this field
- * was introduced.  The Haversine result will always be shorter than the
- * real road distance because it ignores road curvature.
- *
- * @param {{ waypoints: {lat:number,lng:number}[], roadDistanceKm?: number|null }} trip
+ * @param {{ waypoints: {lat:number,lng:number}[], roadDistanceKm?: number|null, _roadDistanceKm?: number|null }} trip
  * @returns {number} distance in km
  */
 export function estimateTripDistance(trip) {
+  // Runtime value set by TripRenderer (most up-to-date, from current API call).
+  if (trip._roadDistanceKm != null && trip._roadDistanceKm > 0) {
+    return trip._roadDistanceKm;
+  }
+
+  // Persisted value written by the Save Route feature.
   if (trip.roadDistanceKm != null && trip.roadDistanceKm > 0) {
     return trip.roadDistanceKm;
   }

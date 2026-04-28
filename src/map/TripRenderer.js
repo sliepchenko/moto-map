@@ -28,10 +28,15 @@ export class TripRenderer {
    * Draws the trip on the map. Returns handles to the created map objects so
    * the caller can mutate or remove them later.
    *
-   * @param {Object} trip - trip data with `waypoints`, `_color`
+   * The route distance is resolved asynchronously from the Directions API.
+   * When it becomes available `onDistanceReady(tripId, km)` is called so that
+   * the sidebar can update the displayed distance without a full re-render.
+   *
+   * @param {Object}   trip                  - trip data with `waypoints`, `_color`
+   * @param {Function} [onDistanceReady]      - optional callback (tripId: string, km: number) => void
    * @returns {{ polyline: google.maps.Polyline, markers: google.maps.Marker[] }}
    */
-  render(trip) {
+  render(trip, onDistanceReady) {
     const color     = trip._color ?? trip.color ?? '#E55D2B';
     const waypoints = trip.waypoints;
 
@@ -80,7 +85,14 @@ export class TripRenderer {
       avoidTolls:    trip.avoidTolls    ?? false,
       avoidFerries:  trip.avoidFerries  ?? false,
     };
-    this.#buildRoute(waypoints, path, avoidOptions);
+    this.#buildRoute(waypoints, path, avoidOptions).then(roadDistanceKm => {
+      if (roadDistanceKm > 0) {
+        // Cache on the trip object so GeoUtils.estimateTripDistance() picks it
+        // up immediately for duration estimates etc.
+        trip._roadDistanceKm = roadDistanceKm;
+        onDistanceReady?.(trip.id, roadDistanceKm);
+      }
+    });
 
     const markers = this.#renderWaypoints(waypoints, color);
 
@@ -89,7 +101,15 @@ export class TripRenderer {
 
   // ── private ──────────────────────────────────────────────────────────────
 
+  /**
+   * Builds the road-following polyline path and accumulates the actual road
+   * distance from each Directions API response.
+   *
+   * @returns {Promise<number>} Total road distance in kilometres (0 on full failure).
+   */
   async #buildRoute(waypoints, path, avoidOptions = {}) {
+    let totalDistanceM = 0;
+
     for (let i = 0; i < waypoints.length - 1; i++) {
       const origin      = new google.maps.LatLng(waypoints[i].lat,     waypoints[i].lng);
       const destination = new google.maps.LatLng(waypoints[i + 1].lat, waypoints[i + 1].lng);
@@ -98,12 +118,18 @@ export class TripRenderer {
 
       if (status === google.maps.DirectionsStatus.OK) {
         result.routes[0].overview_path.forEach(pt => path.push(pt));
+        // Sum up the road distance reported by the API for each leg of this segment.
+        result.routes[0].legs.forEach(leg => {
+          totalDistanceM += leg.distance.value; // value is in metres
+        });
       } else {
         console.warn(`TripRenderer: directions failed (${status}) for segment ${i}→${i + 1}. Drawing straight line.`);
         path.push(origin);
         path.push(destination);
       }
     }
+
+    return totalDistanceM / 1000; // convert to kilometres
   }
 
   /** Wraps DirectionsService.route() in a Promise. */

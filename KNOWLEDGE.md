@@ -561,7 +561,7 @@ Paths are relative to the `data/` directory. Add new trips here — no JS change
 
 6. **No Shadow DOM** — WebComponents do not use Shadow DOM. CSS is global. Adding a new component requires care to avoid unintended style conflicts.
 
-7. **`GeoUtils.haversineKm`** — implemented in `src/core/GeoUtils.js` but not yet wired to the UI (trip stats panel). Distance display in the sidebar currently uses `roadDistanceKm` from saved JSON or the raw `distance_km` field.
+7. **`GeoUtils.haversineKm`** — implemented in `src/core/GeoUtils.js`. `estimateTripDistance()` prefers `trip._roadDistanceKm` (set at runtime by `TripRenderer` from the Directions API response) over `trip.roadDistanceKm` (persisted in the JSON by the Save Route feature) over the Haversine straight-line fallback. The straight-line fallback is significantly shorter than the real road distance, so the Directions-API-based value is always used when available.
 
 8. **Service Worker** — `sw.js` is registered in `main.js`. The caching strategy should be verified and updated when new asset paths are added (e.g. new icon files or theme JSON files).
 

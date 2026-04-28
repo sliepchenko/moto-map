@@ -79,7 +79,40 @@ export class TripListComponent extends HTMLElement {
     });
   }
 
-  // ── private ──────────────────────────────────────────────────────────────
+  /**
+   * Updates the displayed distance for a single trip card with the accurate
+   * road distance returned by the Directions API. Called asynchronously after
+   * the initial render, so it only patches the relevant DOM nodes instead of
+   * re-rendering the whole list.
+   *
+   * @param {string} tripId
+   * @param {number} km
+   */
+  updateTripDistance(tripId, km) {
+    // Keep the in-memory trip in sync so estimateTripDuration() also benefits.
+    const trip = this.#trips.find(t => t.id === tripId);
+    if (trip) trip._roadDistanceKm = km;
+
+    const li = this.querySelector(`.trip-item[data-trip-id="${tripId}"]`);
+    if (!li) return;
+
+    const formatted = km.toFixed(1) + ' km';
+
+    // Update the compact summary badge shown in the collapsed state.
+    const badge = li.querySelector('.trip-distance');
+    if (badge) badge.textContent = formatted;
+
+    // Update the expanded details row.
+    const rows = li.querySelectorAll('.trip-details-row');
+    rows.forEach(row => {
+      const label = row.querySelector('.trip-details-label');
+      if (label?.textContent === 'Distance') {
+        const value = row.querySelector('.trip-details-value');
+        if (value) value.textContent = formatted;
+      }
+    });
+  }
+
 
   #render() {
     this.innerHTML = '';

@@ -64,6 +64,13 @@ class App {
     // Wire map 'load' → populate sidebar + apply URL state
     this.#map.on('load', () => this.#onMapLoaded());
 
+    // Wire accurate road distance updates → refresh sidebar distance display.
+    // TripRenderer fetches the distance from the Directions API asynchronously;
+    // this event fires once per trip after the route path has been resolved.
+    this.#map.on('trip-distance', ({ tripId, km }) => {
+      this.#sidebar.tripList?.updateTripDistance(tripId, km);
+    });
+
     // Wire browser back/forward
     this.#urlState.onNavigate(state => this.#onNavigate(state));
 

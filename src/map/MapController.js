@@ -18,7 +18,10 @@ const DEFAULT_ZOOM  = 12;
  * and selection state.
  *
  * Emits:
- *  - `'load'`  — once all data has been rendered and the map is ready.
+ *  - `'load'`          — once all data has been rendered and the map is ready.
+ *  - `'trip-distance'` — after the Directions API returns the accurate road
+ *                        distance for a trip `{ tripId: string, km: number }`.
+ *                        Fired once per trip, asynchronously after `'load'`.
  *
  * SOLID notes:
  *  - SRP: owns map state and selection; delegates loading to repositories and
@@ -446,7 +449,9 @@ export class MapController extends EventEmitter {
       const tripRenderer = new TripRenderer(this.#map, this.#openInfoWindow);
       this.#tripRenderer = tripRenderer;
       trips.forEach(trip => {
-        const { polyline, markers, _basePolyline } = tripRenderer.render(trip);
+        const { polyline, markers, _basePolyline } = tripRenderer.render(trip, (tripId, km) => {
+          this.emit('trip-distance', { tripId, km });
+        });
         this.#tripLayers.set(trip.id, { trip, polyline, basePolyline: _basePolyline, markers });
       });
 
