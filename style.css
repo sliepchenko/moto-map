@@ -1095,6 +1095,11 @@ nearby-places {
   opacity: 0.75;
 }
 
+.np-group-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
 .np-sublist {
   list-style: none;
 }

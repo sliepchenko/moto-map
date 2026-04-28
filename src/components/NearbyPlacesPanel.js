@@ -103,7 +103,7 @@ export class NearbyPlacesPanel extends HTMLElement {
           data-cat="${cat.id}"
           title="${cat.label}"
           style="--chip-color:${cat.color}"
-        >${cat.label} <span class="np-chip-count">${count}</span></button>
+        >${cat.emoji} ${cat.label} <span class="np-chip-count">${count}</span></button>
       `;
     }).join('');
 
@@ -141,7 +141,7 @@ export class NearbyPlacesPanel extends HTMLElement {
       return `
         <div class="np-group">
           <div class="np-group-title" style="--cat-color:${cat.color}">
-            <img src="${cat.icon}" class="np-group-icon" alt="" />
+            <span class="np-group-emoji">${cat.emoji}</span>
             ${cat.label}
           </div>
           <ul class="np-sublist">${itemsHtml}</ul>
