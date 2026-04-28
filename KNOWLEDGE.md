@@ -461,19 +461,19 @@ Settings changes propagate via `setting-change { key, value }` event → `App.#o
 
 ## Versioning System
 
-The app uses a simple date-based versioning scheme:
+The app uses a simple datetime-based versioning scheme:
 
 - **File:** `src/version.js`
-- **Export:** `APP_VERSION_DATE` — an ISO 8601 date string (`YYYY-MM-DD`)
-- **Display:** imported by `AppSettingsComponent` and rendered as `"Updated: YYYY-MM-DD"` in the Settings panel footer
-- **Update rule:** every agent task that modifies application code or data must set `APP_VERSION_DATE` to today's date
+- **Export:** `APP_VERSION_DATE` — a datetime string (`YYYY-MM-DD HH:MM`)
+- **Display:** imported by `AppSettingsComponent` and rendered as `"Updated: YYYY-MM-DD HH:MM"` in the Settings panel footer
+- **Update rule:** every agent task that modifies application code or data must set `APP_VERSION_DATE` to today's date and current time
 
 ```js
 // src/version.js
-export const APP_VERSION_DATE = '2026-04-28';
+export const APP_VERSION_DATE = '2026-04-28 09:47';
 ```
 
-No build step or semver is needed — the date alone is sufficient for a personal static project.
+No build step or semver is needed — the datetime alone is sufficient for a personal static project.
 
 ---
 
