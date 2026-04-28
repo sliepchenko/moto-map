@@ -16,6 +16,7 @@
  *   natural_feature  → natural_feature
  *   parking          → parking
  *   fuel             → gas_station
+ *   campsite         → campground
  *
  * SOLID notes:
  *  - SRP: only responsible for nearby-place search and marker rendering;
@@ -44,6 +45,7 @@ const PLACE_CATEGORIES = [
   { id: 'natural_feature', type: 'natural_feature',    keyword: null,              icon: 'assets/icons/emoji-park.svg',       emoji: '🌳', label: 'Nature',          color: '#34d399' },
   { id: 'parking',         type: 'parking',            keyword: null,              icon: 'assets/icons/emoji-parking.svg',    emoji: '🅿️', label: 'Parkings',        color: '#94a3b8' },
   { id: 'fuel',            type: 'gas_station',        keyword: null,              icon: 'assets/icons/fuel.svg',             emoji: '⛽', label: 'Fuel Stations',   color: '#f97316' },
+  { id: 'campsite',        type: 'campground',         keyword: null,              icon: 'assets/icons/emoji-campsite.svg',   emoji: '⛺', label: 'Campsites',       color: '#16a34a' },
 ];
 
 export { PLACE_CATEGORIES };

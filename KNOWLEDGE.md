@@ -445,6 +445,7 @@ Searches at sample points along the route using `google.maps.places.PlacesServic
 | `natural_feature` | `natural_feature` | 🌳 | Nature | `emoji-park.svg` |
 | `parking` | `parking` | 🅿️ | Parkings | `emoji-parking.svg` |
 | `fuel` | `gas_station` | ⛽ | Fuel Stations | `fuel.svg` |
+| `campsite` | `campground` | ⛺ | Campsites | `emoji-campsite.svg` |
 
 Map icon files starting with `emoji-` are SVG circles containing the emoji character. Each uses the category's `color` as background fill. Existing categories (`viewpoint`, `cafe`, `fuel`) keep their original icon SVGs.
 
