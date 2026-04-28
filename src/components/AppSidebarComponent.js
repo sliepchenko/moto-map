@@ -1,16 +1,17 @@
 /**
  * `<app-sidebar>` — the full sidebar wrapper with four accordion sections
- * ("My Rides", "My POI", "Plan Route", and "Nearby Places").
+ * ("My Rides", "My POI", "Plan Route").
  *
  * Contains:
  *  - Four `<div class="accordion-section">` wrappers with `<button>` headers
  *    and `<div class="accordion-body">` panels.
  *  - Hosts `<trip-list>`, `<poi-list>`, `<route-planner>`, and
  *    `<nearby-places>` custom elements inside those panels.
+ *    `<nearby-places>` lives inside the "Plan Route" panel.
  *
  * Public API:
  *  - `show()`                  — removes the `hidden` class.
- *  - `openSection(name)`       — opens 'rides', 'poi', 'planner', or 'nearby' accordion section.
+ *  - `openSection(name)`       — opens 'rides', 'poi', or 'planner' accordion section.
  *  - `tripList` / `poiList`    — direct references to the child components.
  *  - `routePlanner`            — direct reference to the route-planner component.
  *  - `nearbyPlaces`            — direct reference to the nearby-places component.
@@ -52,7 +53,7 @@ export class AppSidebarComponent extends HTMLElement {
 
   /**
    * Opens the accordion section named `name` and closes all others.
-   * @param {'rides'|'poi'|'planner'|'nearby'} name
+   * @param {'rides'|'poi'|'planner'} name
    */
   openSection(name) {
     this.querySelectorAll('.accordion-section').forEach(section => {
@@ -107,15 +108,6 @@ export class AppSidebarComponent extends HTMLElement {
         </button>
         <div class="accordion-body">
           <route-planner></route-planner>
-        </div>
-      </div>
-
-      <div class="accordion-section" data-section="nearby">
-        <button class="accordion-header">
-          <span>Nearby Places</span>
-          ${AppSidebarComponent.#arrowSvg()}
-        </button>
-        <div class="accordion-body">
           <nearby-places></nearby-places>
         </div>
       </div>

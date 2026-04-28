@@ -260,13 +260,12 @@ import './src/components/NearbyPlacesPanel.js';
 
 ### Accordion sections in AppSidebarComponent
 
-| Section key | Label | Default state |
-|---|---|---|
-| `rides` | My Rides | open |
-| `poi` | My POI | closed |
-| `planner` | Plan Route | closed |
-| `nearby` | Nearby Places | closed |
-| `settings` | Settings | closed |
+| Section key | Label | Default state | Contents |
+|---|---|---|---|
+| `rides` | My Rides | open | `<trip-list>` |
+| `poi` | My POI | closed | `<poi-list>` |
+| `planner` | Plan Route | closed | `<route-planner>` + `<nearby-places>` |
+| `settings` | Settings | closed | `<app-settings>` (in sidebar-bottom, not accordion) |
 
 Clicking an open section closes it. Clicking a closed section opens it and closes all others.
 `openSection(name)` can be called programmatically from `App`.

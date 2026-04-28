@@ -550,7 +550,7 @@ class App {
 
     this.#lastRoutePath = routePath;
     panel.setLoading(true);
-    this.#sidebar.openSection('nearby');
+    this.#sidebar.openSection('planner');
 
     try {
       // Always fetch all categories so that disabled-category chips remain
