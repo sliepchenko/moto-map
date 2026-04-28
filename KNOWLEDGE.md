@@ -379,35 +379,9 @@ UrlStateManager  (popstate listener)
 - The `_color` property is not persisted — it is recomputed on every load.
 - To change the palette, edit `RECENCY_PALETTE` in `src/core/ColorUtils.js`.
 
-### Route summary with per-leg breakdown
+---
 
-After a route is calculated, the planner panel shows a breakdown of every segment
-between consecutive stops:
-
-- **Multi-leg (3+ stops), single route:** a `rp-route-summary` block appears below
-  the action buttons.  Each leg row shows `Stop A → Stop B · X km · Y min` (using
-  the text returned by the Directions API).  A "Total" bar below the rows summarises
-  the grand total distance and time, coloured to match the route polyline.
-
-- **Single-leg (A→B), multiple alternatives:** each alternative card now contains a
-  `.rp-alt-card-header` flex row (swatch + label + total stats) and a `.rp-alt-legs`
-  block with the same leg rows underneath the header.  For a single-leg route there is
-  only one leg so the breakdown shows one row.
-
-- **Single-leg, single route (API returned only one option):** rendered identically to
-  the multi-leg case — the same `rp-route-summary` + `rp-route-total` layout.
-
-Key implementation details:
-- `#buildLegsHTML(legs, waypoints)` in `RoutePlannerComponent` produces the leg rows.
-  It truncates addresses longer than 22 characters to keep the sidebar compact.
-- `#formatDuration(totalMin)` is a shared helper used by both the leg breakdown and
-  the `selectAltCard()` status message.
-- `#renderAlternatives()` now handles **both** the single-route and multi-route cases
-  (previously it returned early when `#allSummaries.length <= 1`).
-- Relevant CSS classes: `.rp-leg-row`, `.rp-leg-stops`, `.rp-leg-stats`,
-  `.rp-route-summary`, `.rp-route-total`, `.rp-alt-card-header`, `.rp-alt-legs`.
-
-
+## Route Planner
 
 `RouteRenderer` (`src/map/RouteRenderer.js`) handles all planned-route drawing.
 

@@ -537,51 +537,11 @@ export class RoutePlannerComponent extends HTMLElement {
 
   // ── alternatives panel ────────────────────────────────────────────────────
 
-  // ── private: route summary helpers ──────────────────────────────────────
-
-  /**
-   * Formats a fractional-minutes value as a human-readable string.
-   * @param {number} totalMin
-   * @returns {string}  e.g. "1h 23m" or "45m"
-   */
-  #formatDuration(totalMin) {
-    const mins    = Math.round(totalMin);
-    const hrs     = Math.floor(mins / 60);
-    const remMins = mins % 60;
-    return hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
-  }
-
-  /**
-   * Builds the HTML for per-leg breakdown rows.
-   * Each row shows: "Stop A → Stop B · X km · Y min"
-   *
-   * @param {Array<{ distance: string, duration: string }>} legs
-   * @param {Array<{address: string}>} waypoints
-   * @returns {string}  HTML string
-   */
-  #buildLegsHTML(legs, waypoints) {
-    if (!legs || legs.length === 0) return '';
-    return legs.map((leg, i) => {
-      const from = waypoints[i]?.address     ?? `Stop ${i + 1}`;
-      const to   = waypoints[i + 1]?.address ?? `Stop ${i + 2}`;
-      const dist = leg.distance ?? '?';
-      const dur  = leg.duration ?? '?';
-      // Truncate long addresses to keep the UI compact
-      const short = addr => addr.length > 22 ? addr.slice(0, 20) + '…' : addr;
-      return `
-        <div class="rp-leg-row">
-          <span class="rp-leg-stops">${short(from)} → ${short(to)}</span>
-          <span class="rp-leg-stats">${dist} · ${dur}</span>
-        </div>`;
-    }).join('');
-  }
-
   /**
    * Renders (or updates) the alternatives picker panel below the actions row.
    * Each card shows a colour swatch matching the map polyline, distance,
    * duration, and a toll badge when applicable.
-   * If only one summary exists the panel is removed (nothing to compare) — but
-   * a per-leg breakdown is still shown via #renderSingleRouteSummary().
+   * If only one summary exists the panel is removed (nothing to compare).
    *
    * @param {Array<{address: string, lat: number, lng: number}>} waypoints
    */
@@ -590,6 +550,8 @@ export class RoutePlannerComponent extends HTMLElement {
     const existing = this.querySelector('#rp-alternatives');
     if (existing) existing.remove();
 
+    if (this.#allSummaries.length <= 1) return;
+
     const container = this.querySelector('.rp-container');
     if (!container) return;
 
@@ -597,67 +559,40 @@ export class RoutePlannerComponent extends HTMLElement {
     panel.id        = 'rp-alternatives';
     panel.className = 'rp-alternatives';
 
-    if (this.#allSummaries.length === 1) {
-      // Single route (multi-leg or single-leg) — show leg breakdown + total summary
-      const s        = this.#allSummaries[0];
+    const header = document.createElement('div');
+    header.className   = 'rp-alt-header';
+    header.textContent = `${this.#allSummaries.length} routes found — pick one`;
+    panel.appendChild(header);
+
+    this.#allSummaries.forEach((s, i) => {
+      const mins    = Math.round(s.durationMin);
+      const hrs     = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      const duration = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
       const km       = s.distanceKm.toFixed(1);
-      const duration = this.#formatDuration(s.durationMin);
       const color    = s.color ?? '#3b82f6';
-      const legsHTML = this.#buildLegsHTML(s.legs ?? [], waypoints);
 
-      panel.innerHTML = `
-        <div class="rp-route-summary">
-          ${legsHTML}
-          <div class="rp-route-total">
-            <span class="rp-route-total-swatch" style="background:${color};"></span>
-            <span class="rp-route-total-label">Total</span>
-            <span class="rp-route-total-stats">
-              <strong>${km} km</strong>
-              <span class="rp-alt-sep">·</span>
-              <strong>${duration}</strong>
-              ${s.hasTolls
-                ? '<span class="rp-alt-sep">·</span><span class="rp-alt-toll" title="Includes toll roads">Tolls</span>'
-                : ''}
-            </span>
-          </div>
-        </div>`;
-    } else {
-      // Multiple alternatives — show selectable cards, each with leg breakdown
-      const header = document.createElement('div');
-      header.className   = 'rp-alt-header';
-      header.textContent = `${this.#allSummaries.length} routes found — pick one`;
-      panel.appendChild(header);
+      const card = document.createElement('button');
+      card.className   = `rp-alt-card${i === this.#activeAltIndex ? ' active' : ''}`;
+      card.type        = 'button';
+      card.dataset.idx = String(i);
 
-      this.#allSummaries.forEach((s, i) => {
-        const duration = this.#formatDuration(s.durationMin);
-        const km       = s.distanceKm.toFixed(1);
-        const color    = s.color ?? '#3b82f6';
-        const legsHTML = this.#buildLegsHTML(s.legs ?? [], waypoints);
+      card.innerHTML = `
+        <span class="rp-alt-swatch" style="background:${color};box-shadow:0 0 0 1px ${color}44;"></span>
+        <span class="rp-alt-label">Route ${i + 1}</span>
+        <span class="rp-alt-stats">
+          <span class="rp-alt-stat rp-alt-dist">${km} km</span>
+          <span class="rp-alt-sep">·</span>
+          <span class="rp-alt-stat rp-alt-dur">${duration}</span>
+          ${s.hasTolls
+            ? '<span class="rp-alt-sep">·</span><span class="rp-alt-toll" title="Includes toll roads">Tolls</span>'
+            : ''}
+        </span>
+      `;
 
-        const card = document.createElement('div');
-        card.className   = `rp-alt-card${i === this.#activeAltIndex ? ' active' : ''}`;
-        card.dataset.idx = String(i);
-
-        card.innerHTML = `
-          <div class="rp-alt-card-header">
-            <span class="rp-alt-swatch" style="background:${color};box-shadow:0 0 0 1px ${color}44;"></span>
-            <span class="rp-alt-label">Route ${i + 1}</span>
-            <span class="rp-alt-stats">
-              <span class="rp-alt-stat rp-alt-dist">${km} km</span>
-              <span class="rp-alt-sep">·</span>
-              <span class="rp-alt-stat rp-alt-dur">${duration}</span>
-              ${s.hasTolls
-                ? '<span class="rp-alt-sep">·</span><span class="rp-alt-toll" title="Includes toll roads">Tolls</span>'
-                : ''}
-            </span>
-          </div>
-          ${legsHTML ? `<div class="rp-alt-legs">${legsHTML}</div>` : ''}
-        `;
-
-        card.addEventListener('click', () => this.#onAltCardClick(i, waypoints));
-        panel.appendChild(card);
-      });
-    }
+      card.addEventListener('click', () => this.#onAltCardClick(i, waypoints));
+      panel.appendChild(card);
+    });
 
     // Insert after .rp-actions
     const actions = container.querySelector('.rp-actions');
