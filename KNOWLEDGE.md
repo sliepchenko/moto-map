@@ -20,8 +20,9 @@
 11. [Route Planner](#route-planner)
 12. [Nearby Places & Fuel Stations](#nearby-places--fuel-stations)
 13. [Settings System](#settings-system)
-14. [Data Formats](#data-formats)
-15. [Known Limitations & Caveats](#known-limitations--caveats)
+14. [Versioning System](#versioning-system)
+15. [Data Formats](#data-formats)
+16. [Known Limitations & Caveats](#known-limitations--caveats)
 
 ---
 
@@ -93,7 +94,7 @@ moto-map/
     │   ├── TripListComponent.js     # <trip-list>
     │   ├── PoiListComponent.js      # <poi-list>
     │   ├── RoutePlannerComponent.js # <route-planner> — waypoint input + alternatives
-    │   ├── AppSettingsComponent.js  # <app-settings> — map display toggles
+    │   ├── AppSettingsComponent.js  # <app-settings> — map display toggles + version label
     │   ├── NearbyPlacesPanel.js     # nearby places list + category chips
     │   └── TripStatsPanel.js        # trip distance/duration statistics
     ├── core/
@@ -111,8 +112,9 @@ moto-map/
     │   ├── RouteRenderer.js         # Draws planned route + alternatives
     │   ├── FuelStationRenderer.js   # Finds/draws fuel stations along route
     │   └── NearbyPlacesRenderer.js  # Finds/draws tourist places along route
-    └── state/
-        └── UrlStateManager.js       # Manages ?trip= and ?poi= URL params
+    ├── state/
+    │   └── UrlStateManager.js       # Manages ?trip= and ?poi= URL params
+    └── version.js                   # APP_VERSION_DATE — updated by agent after each task
 ```
 
 ---
@@ -452,6 +454,26 @@ Same `PlacesService` approach, specifically for `gas_station` type. Automaticall
 Settings changes propagate via `setting-change { key, value }` event → `App.#onSettingChange()` → corresponding `MapController` method.
 
 **Dark mode:** Implemented by fetching a different `theme.json` and calling `map.setOptions({ styles })`. The two theme files live at the project root.
+
+**Version label:** The bottom of the settings panel displays an "Updated: YYYY-MM-DD" label sourced from `src/version.js` (`APP_VERSION_DATE`). This date must be updated by the agent after every task — see AGENTS.md.
+
+---
+
+## Versioning System
+
+The app uses a simple date-based versioning scheme:
+
+- **File:** `src/version.js`
+- **Export:** `APP_VERSION_DATE` — an ISO 8601 date string (`YYYY-MM-DD`)
+- **Display:** imported by `AppSettingsComponent` and rendered as `"Updated: YYYY-MM-DD"` in the Settings panel footer
+- **Update rule:** every agent task that modifies application code or data must set `APP_VERSION_DATE` to today's date
+
+```js
+// src/version.js
+export const APP_VERSION_DATE = '2026-04-28';
+```
+
+No build step or semver is needed — the date alone is sufficient for a personal static project.
 
 ---
 

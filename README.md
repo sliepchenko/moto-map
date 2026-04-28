@@ -170,8 +170,9 @@ moto-map/
     │   ├── MapLoader.js            # Loads Google Maps API script + theme.json
     │   ├── TripRenderer.js         # Draws trip polylines + waypoint markers
     │   └── PoiRenderer.js          # Draws POI markers with InfoWindows
-    └── state/
-        └── UrlStateManager.js      # Manages ?trip= and ?poi= URL params
+    ├── state/
+    │   └── UrlStateManager.js      # Manages ?trip= and ?poi= URL params
+    └── version.js                  # APP_VERSION_DATE — "last updated" label in Settings
 ```
 
 ---

@@ -950,6 +950,17 @@ app-settings {
   background: #ffffff;
 }
 
+.settings-version {
+  padding: 6px 14px 10px;
+  color: #374151;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-align: right;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 2px;
+}
+
 /* ── Nearby Places panel ─────────────────────────────────────────────────── */
 
 nearby-places {

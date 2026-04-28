@@ -28,6 +28,16 @@ This is the AI's own knowledge storage (also readable by humans). Keep it up to 
 ### ROADMAP.md
 Only mark items as done if they were completed in the current task. Do **not** add new items or reorganize unless explicitly asked.
 
+### src/version.js — MANDATORY after every task
+After every task that touches application code or data, update `APP_VERSION_DATE` in `src/version.js` to today's date in `YYYY-MM-DD` format:
+
+```js
+export const APP_VERSION_DATE = 'YYYY-MM-DD';   // ← set to today
+```
+
+This value is displayed in the Settings panel as the "last updated" label visible to the user.
+Do **not** skip this step — it is always required.
+
 ## Boundaries
 
 The agent must **never** access, read, write, or execute anything outside of the repository root (`/Users/Mykola_Sliepchenko/WebstormProjects/hordes.io`). All file operations, searches, and commands must remain strictly within the repo.
@@ -47,3 +57,4 @@ When the user sends the command `push`, execute the following steps in order:
 - Written in imperative mood after the prefix
 - Describes **what was implemented or changed**, not the mechanical steps taken
 - Keep it under 72 characters
+

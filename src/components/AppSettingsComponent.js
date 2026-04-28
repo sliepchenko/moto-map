@@ -1,3 +1,5 @@
+import { APP_VERSION_DATE } from '../version.js';
+
 /**
  * Settings panel WebComponent.
  *
@@ -131,6 +133,8 @@ export class AppSettingsComponent extends HTMLElement {
             </button>
           </div>
         </div>
+
+        <div class="settings-version">Updated: ${APP_VERSION_DATE}</div>
       </div>
     `;
   }
