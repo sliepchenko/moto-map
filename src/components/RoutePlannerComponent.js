@@ -36,6 +36,8 @@ export class RoutePlannerComponent extends HTMLElement {
   #pickingMode = false;
   /** @type {number|null} id of the waypoint currently being dragged */
   #dragId = null;
+  /** @type {number|null} id of the waypoint whose label is being inline-edited */
+  #editingId = null;
   /**
    * Stored after a successful "Get Directions" call so "Save Route" can use it.
    * Always reflects the currently *selected* alternative (index #activeAltIndex).
@@ -355,20 +357,34 @@ export class RoutePlannerComponent extends HTMLElement {
     const goBtn    = this.querySelector('#rp-go-btn');
     if (goBtn) goBtn.disabled = resolved.length < 2;
 
-    this.#list.innerHTML = this.#waypoints.map((wp, i) => `
-      <div class="rp-wp-row" data-id="${wp.id}" draggable="true">
-        <span class="rp-wp-handle" title="Drag to reorder">⠿</span>
-        <span class="rp-wp-index">${i + 1}</span>
-        <span class="rp-wp-label ${wp.lat !== null ? 'resolved' : 'pending'}" title="${wp.address}">
-          ${wp.address}
-        </span>
-        <div class="rp-wp-controls">
-          <button class="rp-wp-btn rp-wp-up"   data-id="${wp.id}" title="Move up"   ${i === 0 ? 'disabled' : ''}>▲</button>
-          <button class="rp-wp-btn rp-wp-down"  data-id="${wp.id}" title="Move down" ${i === this.#waypoints.length - 1 ? 'disabled' : ''}>▼</button>
-          <button class="rp-wp-btn rp-wp-remove" data-id="${wp.id}" title="Remove">✕</button>
+    this.#list.innerHTML = this.#waypoints.map((wp, i) => {
+      const isEditing = this.#editingId === wp.id;
+      const labelHtml = isEditing
+        ? `<input
+             class="rp-wp-label-edit"
+             data-id="${wp.id}"
+             type="text"
+             value="${wp.address.replace(/"/g, '&quot;')}"
+             autocomplete="off"
+             title="Press Enter or click away to save"
+           />`
+        : `<span class="rp-wp-label ${wp.lat !== null ? 'resolved' : 'pending'}"
+                title="Double-click to rename · ${wp.address}">
+             ${wp.address}
+           </span>`;
+      return `
+        <div class="rp-wp-row${isEditing ? ' rp-wp-editing' : ''}" data-id="${wp.id}" draggable="${isEditing ? 'false' : 'true'}">
+          <span class="rp-wp-handle" title="Drag to reorder">⠿</span>
+          <span class="rp-wp-index">${i + 1}</span>
+          ${labelHtml}
+          <div class="rp-wp-controls">
+            <button class="rp-wp-btn rp-wp-up"   data-id="${wp.id}" title="Move up"   ${i === 0 ? 'disabled' : ''}>▲</button>
+            <button class="rp-wp-btn rp-wp-down"  data-id="${wp.id}" title="Move down" ${i === this.#waypoints.length - 1 ? 'disabled' : ''}>▼</button>
+            <button class="rp-wp-btn rp-wp-remove" data-id="${wp.id}" title="Remove">✕</button>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     // Bind row buttons
     this.#list.querySelectorAll('.rp-wp-up').forEach(btn =>
@@ -378,13 +394,73 @@ export class RoutePlannerComponent extends HTMLElement {
     this.#list.querySelectorAll('.rp-wp-remove').forEach(btn =>
       btn.addEventListener('click', () => this.#removeWaypoint(+btn.dataset.id)));
 
+    // Bind double-click to start inline label editing
+    this.#list.querySelectorAll('.rp-wp-label').forEach(label => {
+      label.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        const row = label.closest('.rp-wp-row');
+        if (row) this.#startEdit(+row.dataset.id);
+      });
+    });
+
+    // Bind inline edit input events
+    this.#list.querySelectorAll('.rp-wp-label-edit').forEach(input => {
+      // Focus immediately and select all text
+      requestAnimationFrame(() => { input.focus(); input.select(); });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.#commitEdit(+input.dataset.id, input.value);
+        } else if (e.key === 'Escape') {
+          this.#cancelEdit();
+        }
+      });
+      input.addEventListener('blur', () => this.#commitEdit(+input.dataset.id, input.value));
+      // Prevent drag from starting on the input
+      input.addEventListener('mousedown', e => e.stopPropagation());
+    });
+
     // Bind drag-and-drop handlers
-    this.#list.querySelectorAll('.rp-wp-row').forEach(row => {
+    this.#list.querySelectorAll('.rp-wp-row:not(.rp-wp-editing)').forEach(row => {
       row.addEventListener('dragstart', e => this.#onDragStart(e, +row.dataset.id));
       row.addEventListener('dragover',  e => this.#onDragOver(e, +row.dataset.id));
       row.addEventListener('dragend',   () => this.#onDragEnd());
       row.addEventListener('drop',      e => e.preventDefault());
     });
+  }
+
+  // ── inline label editing ─────────────────────────────────────────────────
+
+  /**
+   * Enters inline-edit mode for the waypoint with the given id.
+   * @param {number} id
+   */
+  #startEdit(id) {
+    if (this.#editingId === id) return;
+    this.#editingId = id;
+    this.#render();
+  }
+
+  /**
+   * Saves the new label and exits edit mode.
+   * The lat/lng are preserved — only the display address is updated.
+   * @param {number} id
+   * @param {string} rawValue
+   */
+  #commitEdit(id, rawValue) {
+    if (this.#editingId !== id) return;  // already committed / re-rendered
+    const label = rawValue.trim();
+    const wp = this.#waypoints.find(w => w.id === id);
+    if (wp && label) wp.address = label;
+    this.#editingId = null;
+    this.#render();
+  }
+
+  /** Cancels editing without saving. */
+  #cancelEdit() {
+    if (this.#editingId === null) return;
+    this.#editingId = null;
+    this.#render();
   }
 
   /** @param {DragEvent} e @param {number} id */

@@ -405,6 +405,7 @@ static ROUTE_COLORS = ['#3b82f6', '#f59e0b', '#10b981'];
 - **Dragging** a numbered stop marker → updates the waypoint position → recalculates.
 - **Clicking** an alternative polyline on the map → selects it as active (same as sidebar card click).
 - **Hovering** an alternative polyline → brightens it temporarily.
+- **Double-click on a waypoint row label** in the sidebar → activates an inline text input to rename the stop's label. Press Enter or click away to save; Escape to cancel. The lat/lng are preserved — only the display label changes.
 
 ### Avoid options
 
