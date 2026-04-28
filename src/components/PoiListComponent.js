@@ -5,7 +5,7 @@
 const POI_EMOJI = {
   cafe:      '☕',
   fuel:      '⛽',
-  hotel:     '🏨',
+  hotel:     '🛏️',
   mechanic:  '🔧',
   water:     '💧',
   viewpoint: '🔭',

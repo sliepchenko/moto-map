@@ -434,17 +434,19 @@ Searches at sample points along the route using `google.maps.places.PlacesServic
 
 **Place categories:**
 
-| ID | Places API type | Label |
-|---|---|---|
-| `viewpoint` | `point_of_interest` + keyword | Viewpoints |
-| `tourist_places` | `tourist_attraction` + keyword "tourist places" | Tourist Places |
-| `cafe` | `cafe` | Cafes |
-| `restaurant` | `restaurant` | Restaurants |
-| `hotel` | `lodging` | Hotels |
-| `museum` | `museum` | Museums |
-| `natural_feature` | `natural_feature` | Nature |
-| `parking` | `parking` | Parkings |
-| `fuel` | `gas_station` | Fuel Stations |
+| ID | Places API type | Emoji | Label | Map icon |
+|---|---|---|---|---|
+| `viewpoint` | `point_of_interest` + keyword | 🏔️ | Viewpoints | `viewpoint.svg` |
+| `tourist_places` | `tourist_attraction` + keyword "tourist places" | 📷 | Tourist Places | `emoji-tourist.svg` |
+| `cafe` | `cafe` | ☕ | Cafes | `cafe.svg` |
+| `restaurant` | `restaurant` | 🍽️ | Restaurants | `emoji-restaurant.svg` |
+| `hotel` | `lodging` | 🛏️ | Hotels | `emoji-hotel.svg` |
+| `museum` | `museum` | 🏛️ | Museums | `emoji-museum.svg` |
+| `natural_feature` | `natural_feature` | 🌳 | Nature | `emoji-park.svg` |
+| `parking` | `parking` | 🅿️ | Parkings | `emoji-parking.svg` |
+| `fuel` | `gas_station` | ⛽ | Fuel Stations | `fuel.svg` |
+
+Map icon files starting with `emoji-` are SVG circles containing the emoji character. Each uses the category's `color` as background fill. Existing categories (`viewpoint`, `cafe`, `fuel`) keep their original icon SVGs.
 
 Results are deduplicated by `place_id`. Markers carry category color badges. Each InfoWindow has an "Add to Route" button that inserts the place as a waypoint in the planner.
 

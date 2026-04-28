@@ -35,15 +35,15 @@ const SAMPLE_INTERVAL_M = 15_000;  // one sample every ~15 km
  * `icon` URL (asset), a display `label`, and a `color` for the marker badge.
  */
 const PLACE_CATEGORIES = [
-  { id: 'viewpoint',       type: 'point_of_interest', keyword: 'viewpoint',       icon: 'assets/icons/viewpoint.svg', emoji: '🏔️', label: 'Viewpoints',      color: '#22c55e' },
-  { id: 'tourist_places',  type: 'tourist_attraction', keyword: 'tourist places', icon: 'assets/icons/castle.svg',    emoji: '📷', label: 'Tourist Places',  color: '#a78bfa' },
-  { id: 'cafe',            type: 'cafe',               keyword: null,              icon: 'assets/icons/cafe.svg',      emoji: '☕', label: 'Cafes',           color: '#f59e0b' },
-  { id: 'restaurant',      type: 'restaurant',         keyword: null,              icon: 'assets/icons/cafe.svg',      emoji: '🍽️', label: 'Restaurants',     color: '#fb923c' },
-  { id: 'hotel',           type: 'lodging',            keyword: null,              icon: 'assets/icons/hotel.svg',     emoji: '🛏️', label: 'Hotels',          color: '#38bdf8' },
-  { id: 'museum',          type: 'museum',             keyword: null,              icon: 'assets/icons/castle.svg',    emoji: '🏛️', label: 'Museums',         color: '#e879f9' },
-  { id: 'natural_feature', type: 'natural_feature',    keyword: null,              icon: 'assets/icons/water.svg',     emoji: '🌳', label: 'Nature',          color: '#34d399' },
-  { id: 'parking',         type: 'parking',            keyword: null,              icon: 'assets/icons/viewpoint.svg', emoji: '🅿️', label: 'Parkings',        color: '#94a3b8' },
-  { id: 'fuel',            type: 'gas_station',        keyword: null,              icon: 'assets/icons/fuel.svg',      emoji: '⛽', label: 'Fuel Stations',   color: '#f97316' },
+  { id: 'viewpoint',       type: 'point_of_interest', keyword: 'viewpoint',       icon: 'assets/icons/viewpoint.svg',       emoji: '🏔️', label: 'Viewpoints',      color: '#22c55e' },
+  { id: 'tourist_places',  type: 'tourist_attraction', keyword: 'tourist places', icon: 'assets/icons/emoji-tourist.svg',    emoji: '📷', label: 'Tourist Places',  color: '#a78bfa' },
+  { id: 'cafe',            type: 'cafe',               keyword: null,              icon: 'assets/icons/cafe.svg',             emoji: '☕', label: 'Cafes',           color: '#f59e0b' },
+  { id: 'restaurant',      type: 'restaurant',         keyword: null,              icon: 'assets/icons/emoji-restaurant.svg', emoji: '🍽️', label: 'Restaurants',     color: '#fb923c' },
+  { id: 'hotel',           type: 'lodging',            keyword: null,              icon: 'assets/icons/emoji-hotel.svg',      emoji: '🛏️', label: 'Hotels',          color: '#38bdf8' },
+  { id: 'museum',          type: 'museum',             keyword: null,              icon: 'assets/icons/emoji-museum.svg',     emoji: '🏛️', label: 'Museums',         color: '#e879f9' },
+  { id: 'natural_feature', type: 'natural_feature',    keyword: null,              icon: 'assets/icons/emoji-park.svg',       emoji: '🌳', label: 'Nature',          color: '#34d399' },
+  { id: 'parking',         type: 'parking',            keyword: null,              icon: 'assets/icons/emoji-parking.svg',    emoji: '🅿️', label: 'Parkings',        color: '#94a3b8' },
+  { id: 'fuel',            type: 'gas_station',        keyword: null,              icon: 'assets/icons/fuel.svg',             emoji: '⛽', label: 'Fuel Stations',   color: '#f97316' },
 ];
 
 export { PLACE_CATEGORIES };
