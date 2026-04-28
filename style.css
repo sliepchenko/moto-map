@@ -700,10 +700,8 @@ route-planner {
   padding-left: 2px;
 }
 
+/* Card is now a div (to allow block children) */
 .rp-alt-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   width: 100%;
   padding: 7px 10px;
   margin-bottom: 4px;
@@ -736,6 +734,13 @@ route-planner {
 
 .rp-alt-card.active:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* Header row inside each alternative card */
+.rp-alt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Colour swatch — small circle matching the map polyline colour */
@@ -793,6 +798,108 @@ route-planner {
   color: #fcd34d;
   background: rgba(252, 211, 77, 0.15);
   border-color: rgba(252, 211, 77, 0.4);
+}
+
+/* Per-leg breakdown inside a card */
+.rp-alt-legs {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Per-leg rows (shared by alt cards and single-route summary) ─────────── */
+
+.rp-leg-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 10px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.rp-alt-card.active .rp-leg-row {
+  color: #9ca3af;
+}
+
+.rp-leg-stops {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-leg-stats {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.rp-alt-card.active .rp-leg-stats {
+  color: #d1d5db;
+}
+
+/* ── Single-route summary panel (no alternatives) ────────────────────────── */
+
+.rp-route-summary {
+  padding: 4px 0 2px;
+}
+
+.rp-route-summary .rp-leg-row {
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.rp-route-summary .rp-leg-row:last-of-type {
+  border-bottom: none;
+}
+
+.rp-route-total {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+.rp-route-total-swatch {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.85;
+}
+
+.rp-route-total-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.rp-route-total-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.rp-route-total-stats strong {
+  font-weight: 700;
+  color: #e5e7eb;
 }
 
 /* ── Settings button & panel ─────────────────────────────────────────────── */
