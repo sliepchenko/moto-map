@@ -224,7 +224,8 @@ renderAll(pois: Object[]) → google.maps.Marker[]
 ```
 
 - `POI_ICON_MAP`: `{ fuel, hotel, cafe, mechanic, water, viewpoint, castle, campsite }` → `assets/icons/*.svg`
-- Icon size 32×32, anchor (16,16)
+  - Uses same colored-circle style as NearbyPlacesRenderer; hotel→`emoji-hotel.svg`, campsite→`emoji-campsite.svg`, mechanic→`poi-mechanic.svg`, water→`poi-water.svg`, castle→`poi-castle.svg`
+- Icon size 36×36, anchor (18,18)
 - InfoWindow uses `headerContent` (new Maps API pattern)
 - Google Maps link uses `address` if present, else `lat,lng`
 

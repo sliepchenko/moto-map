@@ -1,15 +1,17 @@
 /**
  * Maps each POI type to its SVG icon asset.
+ * Uses the same colored-circle icon style as NearbyPlacesRenderer
+ * so POI markers are visually consistent with route-planning markers.
  * @type {Record<string, string>}
  */
 const POI_ICON_MAP = {
   fuel:      'assets/icons/fuel.svg',
-  hotel:     'assets/icons/hotel.svg',
+  hotel:     'assets/icons/emoji-hotel.svg',
   cafe:      'assets/icons/cafe.svg',
-  mechanic:  'assets/icons/mechanic.svg',
-  water:     'assets/icons/water.svg',
+  mechanic:  'assets/icons/poi-mechanic.svg',
+  water:     'assets/icons/poi-water.svg',
   viewpoint: 'assets/icons/viewpoint.svg',
-  castle:    'assets/icons/castle.svg',
+  castle:    'assets/icons/poi-castle.svg',
   campsite:  'assets/icons/emoji-campsite.svg',
 };
 
@@ -62,8 +64,8 @@ export class PoiRenderer {
     if (iconUrl) {
       markerOptions.icon = {
         url:        iconUrl,
-        scaledSize: new google.maps.Size(32, 32),
-        anchor:     new google.maps.Point(16, 16),
+        scaledSize: new google.maps.Size(36, 36),
+        anchor:     new google.maps.Point(18, 18),
       };
     }
 

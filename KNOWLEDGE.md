@@ -230,6 +230,21 @@ Renders all POIs from `data/pois.json` using custom SVG icons from `assets/icons
 
 Supported POI types: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoint`, `castle`, `campsite`.
 
+**POI icon files (all colored-circle style, consistent with NearbyPlacesRenderer):**
+
+| POI type | Icon file | Circle color |
+|---|---|---|
+| `fuel` | `fuel.svg` | orange `#f59e0b` |
+| `hotel` | `emoji-hotel.svg` | blue `#38bdf8` |
+| `cafe` | `cafe.svg` | light (cream/brown) |
+| `mechanic` | `poi-mechanic.svg` | red `#ef4444` |
+| `water` | `poi-water.svg` | sky `#38bdf8` |
+| `viewpoint` | `viewpoint.svg` | light/gray |
+| `castle` | `poi-castle.svg` | purple `#a855f7` |
+| `campsite` | `emoji-campsite.svg` | green `#16a34a` |
+
+Icon size 36×36, anchor 18×18.
+
 **SVG icon design rule:** All icons in `assets/icons/` must use pure vector shapes (no `<text>` or emoji characters). When loaded as external images by Google Maps marker `url`, SVG text elements with emoji fail to render because the image context has no access to emoji fonts. All icons use circles, polygons, rects, and paths only.
 
 ---
