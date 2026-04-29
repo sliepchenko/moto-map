@@ -75,6 +75,15 @@ export class FuelStationRenderer {
     this.#markers = [];
   }
 
+  /**
+   * Shows or hides all fuel station markers without clearing them.
+   * @param {boolean} visible
+   */
+  setVisibility(visible) {
+    const mapOrNull = visible ? this.#map : null;
+    this.#markers.forEach(m => m.setMap(mapOrNull));
+  }
+
   // ── private ──────────────────────────────────────────────────────────────
 
   /**

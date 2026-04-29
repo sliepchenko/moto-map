@@ -270,6 +270,32 @@ import './src/components/NearbyPlacesPanel.js';
 Clicking an open section closes it. Clicking a closed section opens it and closes all others.
 `openSection(name)` can be called programmatically from `App`.
 
+Every accordion state change (user click, programmatic open, or page-load restore) dispatches a
+`section-change` CustomEvent (`bubbles: true, composed: true`) with `detail: { section: string|null }`.
+`null` means all sections are collapsed.
+
+### Tab-based map layer visibility
+
+Map layers are shown/hidden depending on which sidebar tab is open:
+
+| Active section | Trips visible | POIs visible | Planned route visible |
+|---|---|---|---|
+| `rides` | yes | no | no |
+| `poi` | no | yes* | no |
+| `planner` | no | no | yes |
+| `null` (all collapsed) | yes | yes* | yes |
+
+\* POIs also respect the global "Show POI" toggle in Settings — the tab and the setting are ANDed.
+
+Implementation:
+- `AppSidebarComponent` emits `section-change` on every accordion state change.
+- `App.#onSectionChange()` calls `MapController.setTripLayersVisibility()`, `setPoiVisibility()`,
+  and `setPlannedRouteVisibility()` accordingly.
+- `setPlannedRouteVisibility()` delegates to `RouteRenderer.setVisibility()`,
+  `FuelStationRenderer.setVisibility()`, and `NearbyPlacesRenderer.setVisibility()` — these
+  toggle `marker.setMap()` without destroying the underlying data, so the layers reappear
+  instantly when the tab is re-opened.
+
 ---
 
 ## State Management

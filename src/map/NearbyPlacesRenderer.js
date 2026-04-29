@@ -116,6 +116,15 @@ export class NearbyPlacesRenderer {
   }
 
   /**
+   * Shows or hides all nearby-place markers without clearing them.
+   * @param {boolean} visible
+   */
+  setVisibility(visible) {
+    const mapOrNull = visible ? this.#map : null;
+    this.#markers.forEach(m => m.setMap(mapOrNull));
+  }
+
+  /**
    * Shows or hides all map markers that belong to a given category.
    *
    * @param {string}  categoryId  One of the PLACE_CATEGORIES id values.

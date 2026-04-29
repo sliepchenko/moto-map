@@ -48,6 +48,13 @@ class App {
    */
   #lastRoutePath = [];
 
+  /**
+   * The currently open accordion section ('rides' | 'poi' | 'planner' | null).
+   * Kept in sync with `section-change` events so other handlers can read it.
+   * @type {string|null}
+   */
+  #activeSection = 'rides';
+
   constructor() {
     this.#urlState  = new UrlStateManager();
     this.#sidebar   = document.querySelector('app-sidebar');
@@ -139,6 +146,12 @@ class App {
     // Wire settings change events (bubbled from <app-settings> inside the sidebar)
     this.#sidebar.addEventListener('setting-change', e => this.#onSettingChange(e));
 
+    // Wire section-change events — show/hide map layers depending on active tab.
+    // section-change fires immediately on page load (from #restoreAccordion) so
+    // we register the listener before the map 'load' event fires.  We guard
+    // against acting before the map is ready by checking #map.trips.
+    this.#sidebar.addEventListener('section-change', e => this.#onSectionChange(e));
+
     // Wire nearby-places events
     this.#sidebar.addEventListener('nearby-place-focus',        e => this.#onNearbyPlaceFocus(e));
     this.#sidebar.addEventListener('nearby-category-toggle',    e => this.#onNearbyCategoryToggle(e));
@@ -212,13 +225,22 @@ class App {
 
     // Apply persisted settings now that the map layers exist
     const settings = this.#sidebar.querySelector('app-settings');
-    if (settings) {
-      const { showRouteDirections, showPoi, showTerrain, darkMap } = settings.values;
-      if (!showRouteDirections) this.#map.setRouteDirections(false);
-      if (!showPoi) this.#map.setPoiVisibility(false);
-      if (!showTerrain) this.#map.setTerrainEnabled(false);
-      if (darkMap) this.#map.setDarkMap(true);
-    }
+    const { showRouteDirections = true, showPoi: poiEnabled = true, showTerrain = true, darkMap = false } =
+      settings?.values ?? {};
+
+    if (!showRouteDirections) this.#map.setRouteDirections(false);
+    if (!showTerrain) this.#map.setTerrainEnabled(false);
+    if (darkMap) this.#map.setDarkMap(true);
+
+    // Apply tab-based visibility now that map renderers are ready.
+    // The section-change event fired during connectedCallback was a no-op
+    // because renderers didn't exist yet — apply it now.
+    const showTrips   = this.#activeSection === 'rides'   || this.#activeSection === null;
+    const showPoi     = this.#activeSection === 'poi'     || this.#activeSection === null;
+    const showPlanner = this.#activeSection === 'planner' || this.#activeSection === null;
+    this.#map.setTripLayersVisibility(showTrips);
+    this.#map.setPoiVisibility(showPoi && poiEnabled);
+    this.#map.setPlannedRouteVisibility(showPlanner);
 
     // Restore URL state on first load
     const tripId   = this.#urlState.getTripId();
@@ -477,7 +499,9 @@ class App {
       this.#map.setRouteDirections(value);
     }
     if (key === 'showPoi') {
-      this.#map.setPoiVisibility(value);
+      // Only make POIs visible if the current section also warrants it.
+      const showPoi = (this.#activeSection === 'poi' || this.#activeSection === null) && value;
+      this.#map.setPoiVisibility(showPoi);
     }
     if (key === 'showTerrain') {
       this.#map.setTerrainEnabled(value);
@@ -485,6 +509,37 @@ class App {
     if (key === 'darkMap') {
       this.#map.setDarkMap(value);
     }
+  }
+
+  /**
+   * Adjusts map layer visibility based on which sidebar tab is active.
+   *
+   * - "rides"   → show trips only
+   * - "poi"     → show POIs only
+   * - "planner" → show planned route / fuel / nearby places only
+   * - null      → all collapsed; show everything
+   *
+   * Called on every accordion open/close and once on page load (before map
+   * data is ready); the MapController methods are no-ops until renderers exist.
+   *
+   * @param {CustomEvent} e — detail: { section: string|null }
+   */
+  #onSectionChange({ detail: { section } }) {
+    this.#activeSection = section;
+
+    const showTrips   = section === 'rides'   || section === null;
+    const showPoi     = section === 'poi'     || section === null;
+    const showPlanner = section === 'planner' || section === null;
+
+    this.#map.setTripLayersVisibility(showTrips);
+
+    // Respect the "Show POI" setting: only make POIs visible if the setting
+    // permits it AND the active section warrants it.
+    const settings    = this.#sidebar.querySelector('app-settings');
+    const poiEnabled  = settings ? settings.values.showPoi : true;
+    this.#map.setPoiVisibility(showPoi && poiEnabled);
+
+    this.#map.setPlannedRouteVisibility(showPlanner);
   }
 
   // ── nearby places handlers ────────────────────────────────────────────────

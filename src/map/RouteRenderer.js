@@ -201,6 +201,19 @@ export class RouteRenderer {
   }
 
   /**
+   * Shows or hides all planned-route polylines and stop markers without clearing
+   * the underlying data.  Used to hide the route when the Plan Route tab is inactive.
+   *
+   * @param {boolean} visible
+   */
+  setVisibility(visible) {
+    const mapOrNull = visible ? this.#map : null;
+    this.#polyline?.setMap(mapOrNull);
+    this.#altPolylines.forEach(p => p.setMap(mapOrNull));
+    this.#markers.forEach(m => m.setMap(mapOrNull));
+  }
+
+  /**
    * Sets road-type avoidance flags used for future route renders.
    * @param {{ avoidHighways?: boolean, avoidTolls?: boolean, avoidFerries?: boolean }} options
    */

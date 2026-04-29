@@ -60,6 +60,7 @@ export class AppSidebarComponent extends HTMLElement {
       section.classList.toggle('open', section.dataset.section === name);
     });
     this.#saveAccordion(name);
+    this.#emitSectionChange(name);
   }
 
   /** @returns {import('./TripListComponent.js').TripListComponent} */
@@ -135,6 +136,7 @@ export class AppSidebarComponent extends HTMLElement {
         const nextOpen = wasOpen ? null : section.dataset.section;
         if (nextOpen) section.classList.add('open');
         this.#saveAccordion(nextOpen);
+        this.#emitSectionChange(nextOpen);
       });
     });
   }
@@ -158,7 +160,24 @@ export class AppSidebarComponent extends HTMLElement {
         const target = this.querySelector(`.accordion-section[data-section="${stored}"]`);
         if (target) target.classList.add('open');
       }
+      // Emit the initial active section so App can set up initial visibility
+      const active = stored ?? 'rides';
+      this.#emitSectionChange(active);
     } catch { /* ignore storage errors */ }
+  }
+
+  /**
+   * Dispatches a `section-change` CustomEvent with the currently open section name.
+   * Fires `null` when all sections are collapsed.
+   *
+   * @param {string|null} section
+   */
+  #emitSectionChange(section) {
+    this.dispatchEvent(new CustomEvent('section-change', {
+      detail: { section },
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   static #arrowSvg() {

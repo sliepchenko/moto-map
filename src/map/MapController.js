@@ -378,6 +378,31 @@ export class MapController extends EventEmitter {
   }
 
   /**
+   * Shows or hides all trip polylines and their waypoint markers on the map.
+   * Used to hide trips when the "My Rides" tab is not active.
+   * @param {boolean} enabled
+   */
+  setTripLayersVisibility(enabled) {
+    this.#tripLayers.forEach(({ polyline, basePolyline, markers }) => {
+      basePolyline?.setMap(enabled ? this.#map : null);
+      polyline.setMap(enabled ? this.#map : null);
+      markers.forEach(m => m.setMap(enabled ? this.#map : null));
+    });
+  }
+
+  /**
+   * Shows or hides the planned route polylines and their stop markers.
+   * Also toggles fuel station and nearby place markers.
+   * Used to hide the planned route when the "Plan Route" tab is not active.
+   * @param {boolean} enabled
+   */
+  setPlannedRouteVisibility(enabled) {
+    this.#routeRenderer?.setVisibility(enabled);
+    this.#fuelRenderer?.setVisibility(enabled);
+    this.#nearbyPlacesRenderer?.setVisibility(enabled);
+  }
+
+  /**
    * Enables or disables the terrain map type.
    * When disabled, falls back to the default ROADMAP type.
    * @param {boolean} enabled
