@@ -1,4 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- background circle -->
   <circle cx="16" cy="16" r="15" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>
-  <text x="50%" y="50%" text-anchor="middle" dy="0.35em" font-size="16" font-family="sans-serif">🏨</text>
+  <!-- bed base -->
+  <rect x="7" y="18" width="18" height="7" rx="1.5" fill="#fff"/>
+  <!-- headboard -->
+  <rect x="7" y="15" width="3" height="4" rx="1" fill="#fff"/>
+  <!-- pillow -->
+  <rect x="10.5" y="15.5" width="5" height="3" rx="1.5" fill="#bfdbfe"/>
+  <rect x="16.5" y="15.5" width="5" height="3" rx="1.5" fill="#bfdbfe"/>
+  <!-- H letter -->
+  <rect x="13" y="8" width="2" height="6" rx="0.5" fill="#fff"/>
+  <rect x="17" y="8" width="2" height="6" rx="0.5" fill="#fff"/>
+  <rect x="13" y="10.5" width="6" height="1.5" rx="0.5" fill="#fff"/>
 </svg>

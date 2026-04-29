@@ -223,7 +223,7 @@ constructor(map, openInfoWindow)
 renderAll(pois: Object[]) → google.maps.Marker[]
 ```
 
-- `POI_ICON_MAP`: `{ fuel, hotel, cafe, mechanic, water, viewpoint, castle }` → `assets/icons/*.svg`
+- `POI_ICON_MAP`: `{ fuel, hotel, cafe, mechanic, water, viewpoint, castle, campsite }` → `assets/icons/*.svg`
 - Icon size 32×32, anchor (16,16)
 - InfoWindow uses `headerContent` (new Maps API pattern)
 - Google Maps link uses `address` if present, else `lat,lng`

@@ -10,6 +10,7 @@ const POI_ICON_MAP = {
   water:     'assets/icons/water.svg',
   viewpoint: 'assets/icons/viewpoint.svg',
   castle:    'assets/icons/castle.svg',
+  campsite:  'assets/icons/emoji-campsite.svg',
 };
 
 /**

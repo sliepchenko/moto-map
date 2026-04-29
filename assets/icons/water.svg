@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <circle cx="16" cy="16" r="15" fill="#f8f8f8" stroke="#9fc9df" stroke-width="2"/>
-  <text x="50%" y="50%" text-anchor="middle" dx="0.1em" dy="0.25em" font-size="16" font-family="sans-serif">🌊</text>
+  <!-- background circle -->
+  <circle cx="16" cy="16" r="15" fill="#e0f2fe" stroke="#9fc9df" stroke-width="2"/>
+  <!-- water drop shape -->
+  <path d="M16 7 C16 7 9 16 9 20 C9 24 12.1 27 16 27 C19.9 27 23 24 23 20 C23 16 16 7 16 7 Z" fill="#38bdf8"/>
+  <!-- shine -->
+  <ellipse cx="13" cy="18" rx="1.5" ry="2.5" fill="#e0f2fe" opacity="0.6" transform="rotate(-20 13 18)"/>
 </svg>

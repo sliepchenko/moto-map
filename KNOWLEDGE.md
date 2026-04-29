@@ -228,7 +228,9 @@ Trip JSON may include `avoidHighways`, `avoidTolls`, `avoidFerries` booleans —
 
 Renders all POIs from `data/pois.json` using custom SVG icons from `assets/icons/`. Each marker opens an InfoWindow with title, description, and a deep-link to Google Maps.
 
-Supported POI types: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoint`.
+Supported POI types: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoint`, `castle`, `campsite`.
+
+**SVG icon design rule:** All icons in `assets/icons/` must use pure vector shapes (no `<text>` or emoji characters). When loaded as external images by Google Maps marker `url`, SVG text elements with emoji fail to render because the image context has no access to emoji fonts. All icons use circles, polygons, rects, and paths only.
 
 ---
 

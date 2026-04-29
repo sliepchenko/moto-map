@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- background circle -->
   <circle cx="16" cy="16" r="15" fill="#f8f8f8" stroke="#d32f2e" stroke-width="2"/>
-  <text x="50%" y="50%" text-anchor="middle" dx="0em" dy="0.45em" font-size="16" font-family="sans-serif">🏰</text>
+  <!-- tower body -->
+  <rect x="10" y="16" width="12" height="10" fill="#d32f2e"/>
+  <!-- battlements (3 merlons) -->
+  <rect x="10" y="12" width="3" height="5" fill="#d32f2e"/>
+  <rect x="14.5" y="12" width="3" height="5" fill="#d32f2e"/>
+  <rect x="19" y="12" width="3" height="5" fill="#d32f2e"/>
+  <!-- door -->
+  <path d="M14 26 L14 21 Q16 19 18 21 L18 26 Z" fill="#f8f8f8"/>
+  <!-- window -->
+  <rect x="14.5" y="17.5" width="3" height="2.5" rx="1" fill="#f8f8f8"/>
 </svg>
