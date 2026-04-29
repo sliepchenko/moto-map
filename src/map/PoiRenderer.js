@@ -53,7 +53,7 @@ export class PoiRenderer {
   #renderOne(poi) {
     const iconUrl       = POI_ICON_MAP[poi.type] ?? null;
     const markerOptions = {
-      position: { lat: poi.lat, lng: poi.lng },
+      position: { lat: Number(poi.lat), lng: Number(poi.lng) },
       map:      this.#map,
       title:    poi.title ?? poi.type,
     };
