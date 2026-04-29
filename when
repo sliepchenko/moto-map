@@ -1,0 +1,404 @@
+Let me start by reading the required files to understand the codebase.
+Now let me look at the relevant files for the "My POI" (poi tab) visibility issue:
+Now let me look at the POI list component and the section change logic more carefully:
+Now I understand the issue. Let me trace the bug:
+
+**The problem:** When the user opens the "My POI" section, `#onSectionChange` is called with `section = 'poi'`. It calls `setPoiVisibility(true && poiEnabled)`. But at this point, POI markers are shown. However, clicking on a POI in the list calls `#applyPoi(index)` which calls `this.#map.openPoi(index)`. 
+
+Let me look at `openPoi` in MapController more carefully. The issue might be that when "My POI" section is active, POI visibility is set correctly, but clicking a POI shows an InfoWindow — yet the user says they don't see anything.
+
+Wait, let me re-read the user's message: "MY POI is active, I dont see anything". This means when they open the "My POI" tab, no POI markers appear on the map.
+
+Looking at the visibility table in CODEOVERVIEW.md:
+- `poi` active → POIs visible: yes* (* only if `showPoi` setting is true)
+
+The logic in `#onSectionChange` at `main.js:538`:
+```js
+const showPoi = section === 'poi' || section === null;
+```
+
+This looks correct. Let me check `setPoiVisibility` — it calls `marker.setVisible(enabled)`. But wait — the markers were initially rendered with `setMap(this.#map)`. 
+
+The key issue is: **POI markers are rendered during `#onMapReady()`** with `setMap(this.#map)` (visible by default). But then immediately after, `emit('load')` fires, `#onMapLoaded()` runs, and it applies the tab-based visibility:
+
+```js
+const showPoi = this.#activeSection === 'poi' || this.#activeSection === null;
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+Since `#activeSection` defaults to `'rides'` (`main.js:56`), `showPoi` is `false`, so POI markers get hidden. Good.
+
+Then when the user clicks "My POI", `#onSectionChange` fires with `section = 'poi'`, so `showPoi = true`, and `setPoiVisibility(true && poiEnabled)` should make them visible.
+
+But `setPoiVisibility` uses `marker.setVisible(enabled)` — not `marker.setMap(map)`. Let me check if `setVisible` and the initial `setMap` play well together.
+
+Actually, the real issue might be different. Let me look at how `setTripLayersVisibility` uses `setMap(null)` vs `setPoiVisibility` uses `setVisible()`. These are two different APIs. If `setMap(null)` was called at some point, `setVisible(true)` won't bring it back — you'd need `setMap(map)` again.
+
+But POI markers are rendered with `PoiRenderer.renderAll()` which adds them to the map. They're never hidden via `setMap(null)`. `setPoiVisibility` only uses `setVisible()`. So that should be consistent.
+
+Wait — let me re-read `#onMapLoaded()` more carefully. The `section-change` event fires during `connectedCallback` → `#restoreAccordion()` which fires BEFORE `map.init()` completes. So `#activeSection` is set by those early events. Then when the map loads, it applies the correct visibility.
+
+But actually I see a potential timing issue: `#restoreAccordion` emits `section-change` → `#onSectionChange` sets `#activeSection`. If the stored value in localStorage is `'poi'`, then when the map loads, `showPoi` is `true`, and POIs become visible.
+
+Let me check if there's a scenario where POIs can't be seen. Let me look at `PoiRenderer`:
+Now I can see the root cause clearly. In `setPoiVisibility`, the code uses `marker.setVisible(enabled)`. The markers are initially created with `map: this.#map` (visible). When `setPoiVisibility(false)` is called, it calls `marker.setVisible(false)`. When `setPoiVisibility(true)` is called later, it calls `marker.setVisible(true)` — this should work.
+
+But wait — `setTripLayersVisibility` uses `markers.forEach(m => m.setMap(enabled ? this.#map : null))`. These are **trip waypoint markers**. Trip markers use `setMap(null)` to hide and `setMap(this.#map)` to show — not `setVisible`.
+
+The POI markers use `setVisible()`. This is consistent within itself. But there's a subtle issue:
+
+In `#onSectionChange` at line 527-543 of `main.js`, when `section = 'poi'`:
+- `showPoi = true` 
+- `setPoiVisibility(true && poiEnabled)` is called
+
+This should work. Let me think about what "I don't see anything" means more precisely. Perhaps the user is saying that when they click a POI item in the list, nothing happens on the map (no pan/zoom/InfoWindow)?
+
+Let me look at `#applyPoi` and `openPoi` again:
+
+```js
+#applyPoi(index) {
+  this.#map.openPoi(index);
+  this.#sidebar.poiList.setActive(index);
+}
+```
+
+```js
+openPoi(index) {
+  const marker = this.#poiMarkers[index];
+  if (!marker) return;
+  this.#openInfoWindow.current?.close();
+  this.#map.panTo(marker.getPosition());
+  this.#map.setZoom(15);
+  if (marker._infoWindow) {
+    marker._infoWindow.open(this.#map, marker);
+    this.#openInfoWindow.current = marker._infoWindow;
+  }
+}
+```
+
+Wait — `this.#map.panTo` but `this.#map` inside `MapController` is the `google.maps.Map` instance. That's fine.
+
+Actually, I think the real issue might be simpler: **the POI markers might be invisible (hidden) even when the POI tab is active**. Let me re-read the `setPoiVisibility` more carefully:
+
+```js
+setPoiVisibility(enabled) {
+  this.#poiMarkers.forEach(marker => marker.setVisible(enabled));
+}
+```
+
+This uses `setVisible()`. But `marker.setVisible(false)` doesn't remove the marker from the map — it just hides it. `marker.setVisible(true)` should make it visible again.
+
+Hmm, but actually in Google Maps JS API, **`setVisible(false)` and then `setVisible(true)` should work correctly**. Let me reconsider.
+
+Wait — what about this scenario? The `section-change` fires **before** `#onMapLoaded()`. At that point `#poiMarkers` is empty (no markers yet). So `setPoiVisibility` is a no-op. Then in `#onMapLoaded()`, the markers ARE applied. But there's an issue: the markers are created with `map: this.#map` (visible by default). Then `#onMapLoaded()` applies:
+
+```js
+const showPoi = this.#activeSection === 'poi' || this.#activeSection === null;
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+If `#activeSection` is `'poi'` (from localStorage), `showPoi = true`. So POI markers remain visible. This seems fine.
+
+But what if the user opens "My POI" tab *after* the map loads? Then `#onSectionChange` fires with `section = 'poi'`, `showPoi = true`, `poiEnabled` is checked from `settings.values.showPoi`. 
+
+Hmm, let me look at this line again in `#onSectionChange`:
+
+```js
+const settings   = this.#sidebar.querySelector('app-settings');
+const poiEnabled = settings ? settings.values.showPoi : true;
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+And `settings.values` in `AppSettingsComponent`:
+Now I see the problem clearly. Let me trace the full flow:
+
+**Root cause found:**
+
+In `#onMapLoaded()` (`main.js:218`), there's this code:
+
+```js
+const settings = this.#sidebar.querySelector('app-settings');
+const { showRouteDirections = true, showPoi: poiEnabled = true, showTerrain = true, darkMap = false } =
+  settings?.values ?? {};
+
+if (!showRouteDirections) this.#map.setRouteDirections(false);
+if (!showTerrain) this.#map.setTerrainEnabled(false);
+if (darkMap) this.#map.setDarkMap(true);
+
+// Apply tab-based visibility...
+const showPoi = this.#activeSection === 'poi' || this.#activeSection === null;
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+Notice: **`setPoiVisibility` is called with the `poiEnabled` setting value**. But there's no call to `setPoiVisibility(true)` if `poiEnabled` is `true` and `showPoi` is `true` — that part is fine.
+
+**The actual bug:** Look at `#onSectionChange` at line 527:
+
+```js
+#onSectionChange({ detail: { section } }) {
+  this.#activeSection = section;
+  const showPoi = section === 'poi' || section === null;
+  ...
+  this.#map.setPoiVisibility(showPoi && poiEnabled);
+}
+```
+
+The `section-change` event fires during `connectedCallback` → `#restoreAccordion()`. This happens **before** `map.init()` completes, so `this.#map` (the MapController) exists but `#poiMarkers` is empty. `setPoiVisibility` does nothing. 
+
+Then when the map loads, `#onMapLoaded()` applies visibility correctly.
+
+Then when the user opens "My POI" tab, `#onSectionChange` fires with `section = 'poi'`, calls `setPoiVisibility(true && poiEnabled)`. 
+
+**Wait — actually let me check `#onMapLoaded` again:**
+
+```js
+if (!showRouteDirections) this.#map.setRouteDirections(false);
+if (!showTerrain) this.#map.setTerrainEnabled(false);
+if (darkMap) this.#map.setDarkMap(true);
+```
+
+**The `showPoi` setting is NOT applied** — there's no `if (!poiEnabled) this.#map.setPoiVisibility(false);` equivalent here! Wait, it IS applied later:
+
+```js
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+But this uses `showPoi` (section-based) AND `poiEnabled` (setting-based). So if `poiEnabled = true` and `showPoi = false` (because we're on 'rides' tab), POIs are correctly hidden.
+
+OK let me think differently. The user says: "My POI is active, I don't see anything." This means they're on the POI tab but no markers appear.
+
+Let me look at what happens specifically when:
+1. User opens the app → "rides" section is default (or from localStorage)
+2. `#onMapLoaded()` is called → `showPoi = false` (rides tab active), POIs get hidden via `setPoiVisibility(false)` 
+3. User clicks "My POI" accordion → `#onSectionChange({ section: 'poi' })`
+4. `showPoi = true`, `poiEnabled` is read from settings
+5. `setPoiVisibility(true && poiEnabled)`
+
+This should work... **unless the POI markers were hidden with `setMap(null)` instead of `setVisible(false)`**. But looking at `setPoiVisibility`, it only uses `setVisible()`, and the markers are always attached to the map.
+
+Wait — actually the **real problem** might be that `setPoiVisibility(false)` uses `marker.setVisible(false)`, and then `setPoiVisibility(true)` uses `marker.setVisible(true)`. In Google Maps API, this is valid. But what if `setMap(null)` is called somehow?
+
+Actually, I need to reconsider. Let me re-read the description: "MY POI is active, I dont see anything **we**". 
+
+Perhaps "we" is a typo for "when" — "I don't see anything when MY POI is active."
+
+Let me look at this problem from a different angle. The issue might be that the `#onSectionChange` fires **before** `#onMapLoaded` for the `'poi'` section. Specifically:
+
+1. `#restoreAccordion` fires `section-change` with the stored section (e.g., `'poi'`)
+2. `#onSectionChange` sets `#activeSection = 'poi'`, calls `setPoiVisibility(true)` — but markers don't exist yet, no-op
+3. Map finishes loading → `#onMapLoaded()` is called
+4. `#onMapLoaded` checks `this.#activeSection === 'poi'` → `showPoi = true`
+5. But wait — `poiEnabled` is read from settings. That's `true` by default.
+6. `setPoiVisibility(true && true)` → markers visible ✓
+
+Hmm, this still should work. Let me check if there's anything in the `#onMapLoaded` that might override things:
+
+Actually, I just realized — looking at `#onMapLoaded` line 238-243:
+
+```js
+const showTrips   = this.#activeSection === 'rides'   || this.#activeSection === null;
+const showPoi     = this.#activeSection === 'poi'     || this.#activeSection === null;
+const showPlanner = this.#activeSection === 'planner' || this.#activeSection === null;
+this.#map.setTripLayersVisibility(showTrips);
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+this.#map.setPlannedRouteVisibility(showPlanner);
+```
+
+This looks correct. But notice: POI markers are created *before* `emit('load')` in `#onMapReady()`:
+
+```js
+const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
+this.#poiMarkers   = poiRenderer.renderAll(pois);
+...
+this.emit('load');  // triggers #onMapLoaded
+```
+
+So by the time `#onMapLoaded` runs, `#poiMarkers` is populated. Good.
+
+Let me look at the actual CSS — could it be a CSS issue where the "My POI" accordion body doesn't show? Let me check the style:
+Now I have a complete picture. Let me identify the exact bug:
+
+**The bug is in `#onMapLoaded()` in `main.js`.**
+
+When the map loads, it applies the POI visibility:
+```js
+const showPoi = this.#activeSection === 'poi' || this.#activeSection === null;
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+But **POI markers are created via `new google.maps.Marker({ map: this.#map, ... })`** — they start visible on the map. When `setPoiVisibility(false)` is called (rides tab = default), it calls `marker.setVisible(false)`.
+
+Then when the user opens "My POI" tab, `setPoiVisibility(true)` calls `marker.setVisible(true)` — this **should** work.
+
+Wait... but actually `setVisible(false)` on a marker created with `map: this.#map` sets it hidden. Then `setVisible(true)` should show it again. That's correct Google Maps API behavior.
+
+**UNLESS** — in `setTripLayersVisibility`, trip markers use `m.setMap(null)` to hide. But those are different markers (trip waypoints).
+
+Let me look for the actual bug differently. Could the issue be that `setPoiVisibility(false)` is called (with `marker.setVisible(false)`), but when re-enabling, `setMap(null)` has been called on these markers somewhere?
+
+Actually no — let me re-read more carefully. Here's what I think might be the real issue:
+
+Looking at `#onMapLoaded()` at `main.js:228`:
+```js
+const { showRouteDirections = true, showPoi: poiEnabled = true, ...} = settings?.values ?? {};
+```
+
+Then:
+```js
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+```
+
+But notice — the `showPoi` setting defaults to `true`, and the tab is `rides` by default so `showPoi = false`. So `setPoiVisibility(false)` is called. This hides all POI markers with `marker.setVisible(false)`.
+
+Now when user opens "My POI" tab:
+1. `#onSectionChange` fires
+2. `showPoi = true` 
+3. `setPoiVisibility(true && poiEnabled)` where `poiEnabled` = `settings.values.showPoi`
+
+This should work. BUT — what if `poiEnabled` is somehow `false`? Let's check: `settings.values.showPoi` is read from `AppSettingsComponent.#settings` which defaults to `true`. Unless the user specifically turned it off.
+
+Wait — I think I need to re-read the user's message more carefully: "MY POI is active, I dont see anything". 
+
+Let me think about an alternative interpretation: when the user opens the My POI section and **clicks** on a POI item in the list, nothing happens on the map. No pan, no zoom, no InfoWindow. 
+
+Let me look at the `#applyPoi` / `openPoi` flow again. When user clicks a POI:
+1. `PoiListComponent` dispatches `poi-select { index }`
+2. `App` handles it → `#applyPoi(index)`
+3. `#applyPoi` calls `this.#map.openPoi(index)`
+4. `openPoi` does: `marker = this.#poiMarkers[index]` → pan + zoom + open InfoWindow
+
+Wait... but **the POI markers are hidden via `setVisible(false)`** when not on the POI tab. When `openPoi` is called, it does `this.#map.panTo(marker.getPosition())` and `marker._infoWindow.open(this.#map, marker)`. The InfoWindow opens even if the marker is hidden. But the user wouldn't see the marker itself!
+
+But more importantly — when the user OPENS the "My POI" section, `#onSectionChange` fires and shows the POIs. So by the time they click a POI, markers should already be visible.
+
+Hmm. Let me think about another scenario:
+
+What if `openPoi` is called (from URL state restore) and `setPoiVisibility(false)` is called *after* it? Let me check `#onMapLoaded`:
+
+```js
+// Line 240-243
+this.#map.setPoiVisibility(showPoi && poiEnabled);  // ← hides POIs if not on poi tab
+
+// Line 245-254
+const tripId   = this.#urlState.getTripId();
+const poiIndex = this.#urlState.getPoiIndex();
+
+if (poiIndex !== null) {
+  this.#sidebar.openSection('poi');  // ← emits section-change → sets #activeSection = 'poi'
+  this.#applyPoi(poiIndex);         // ← opens the POI
+}
+```
+
+Wait! Look at the order here:
+1. `setPoiVisibility(showPoi && poiEnabled)` is called with the old `#activeSection` value
+2. Then `this.#sidebar.openSection('poi')` fires `section-change` → `#onSectionChange` → `setPoiVisibility(true)`
+
+So actually if `poiIndex !== null` in URL, the sequence is:
+1. `setPoiVisibility(false)` (hides all POIs)
+2. `openSection('poi')` → `section-change` → `setPoiVisibility(true)` (shows all POIs)
+3. `#applyPoi(poiIndex)` → `openPoi(index)` → markers shown, InfoWindow opens
+
+That looks correct...
+
+OK let me just look at this from a FRESH angle. The user says "MY POI is active, I don't see anything". This likely means: **no POI markers appear on the map when the My POI section is open**.
+
+Let me check: is there any race condition where `setPoiVisibility(false)` could be called AFTER the POI tab is opened?
+
+Looking at `#onSectionChange`: it's called synchronously from the `section-change` event. There's no async here. The order is deterministic.
+
+Wait — I just noticed something. In `#onMapLoaded` at line 238-243:
+
+```js
+const showTrips   = this.#activeSection === 'rides'   || this.#activeSection === null;
+const showPoi     = this.#activeSection === 'poi'     || this.#activeSection === null;
+const showPlanner = this.#activeSection === 'planner' || this.#activeSection === null;
+this.#map.setTripLayersVisibility(showTrips);
+this.#map.setPoiVisibility(showPoi && poiEnabled);
+this.#map.setPlannedRouteVisibility(showPlanner);
+```
+
+But **`#activeSection` is initialized to `'rides'`** in `App` constructor at `main.js:56`. The `section-change` event fires during `#restoreAccordion()` in `AppSidebarComponent.connectedCallback()`. This fires synchronously as part of the component mounting.
+
+Now the question is: does `connectedCallback` fire before `start()` is called, or after?
+
+In `constructor()`:
+```js
+this.#sidebar = document.querySelector('app-sidebar');
+```
+
+The element is found in the DOM. Its `connectedCallback` would have already fired during parsing (the element is in the HTML). So when `start()` is called, the `section-change` event from `#restoreAccordion()` has ALREADY fired. But at that point, there's no listener yet! The listener is registered in `start()` at line 153:
+
+```js
+this.#sidebar.addEventListener('section-change', e => this.#onSectionChange(e));
+```
+
+This means the **initial `section-change` event from `#restoreAccordion()` fires BEFORE the listener is registered**, so `#activeSection` remains `'rides'` regardless of what's in localStorage!
+
+Then `#onMapLoaded()` checks `this.#activeSection === 'rides'` → `showPoi = false` → `setPoiVisibility(false)`.
+
+If the user had `'poi'` stored in localStorage, the accordion opens to show "My POI" UI, but `#activeSection` is still `'rides'` because the event wasn't captured. Then after `#onMapLoaded`, `setPoiVisibility(false)` is called and POIs are hidden.
+
+**But wait** — the comment in `main.js` at line 149-152 says:
+```
+// Wire section-change events — show/hide map layers depending on active tab.
+// section-change fires immediately on page load (from #restoreAccordion) so
+// we register the listener before the map 'load' event fires.  We guard
+// against acting before the map is ready by checking #map.trips.
+```
+
+So the **intent** was that the listener is registered before `section-change` fires. But is that actually the case?
+
+`start()` is called after `new App()`. Let's look:
+```js
+new App().start();
+```
+
+In `App.constructor()`:
+```js
+this.#sidebar = document.querySelector('app-sidebar');
+```
+
+`app-sidebar` is already in the DOM. Its `connectedCallback` already ran, so `#restoreAccordion()` already fired `section-change` — but no listener was attached yet.
+
+Then in `start()`, the listener is added at line 153. But the event already fired!
+
+**Wait, but then the comment says "we register the listener before the map 'load' event fires"**. The comment is about it being registered before `'load'`, not before `connectedCallback`. So the design is:
+
+1. `App` constructor → finds sidebar element (already connected, `section-change` already fired from `#restoreAccordion`)
+2. `start()` → registers listener (too late for initial event)
+3. BUT `#onMapLoaded()` manually applies visibility based on `#activeSection` which defaults to `'rides'`
+4. So `#activeSection` never gets the value from localStorage
+
+And the `#onMapLoaded()` at line 238 computes `showPoi = (this.#activeSection === 'poi' || this.#activeSection === null)`. Since `#activeSection` is always `'rides'` (initial event was missed), `showPoi = false`, and POIs get hidden even when the POI tab is open!
+
+**This IS the bug!** The initial `section-change` from `#restoreAccordion` fires before the listener in `start()` is registered. So `#activeSection` never gets the restored value from localStorage.
+
+Now — but why would the user see the same behavior even without localStorage (first visit)? On first visit, localStorage is empty, `#restoreAccordion` emits `section-change` with `'rides'` (default), `#activeSection` is `'rides'`. User opens "My POI" → `section-change` fires → `#onSectionChange` runs → `setPoiVisibility(true)`. This should work.
+
+So the bug only manifests when:
+1. User had "My POI" as last open section (stored in localStorage as `'poi'`)
+2. Page refreshes
+3. `#restoreAccordion` opens "My POI" section in the DOM but `section-change` is missed by the listener
+4. `#activeSection` remains `'rides'`
+5. `#onMapLoaded()` applies `showPoi = false` → hides POIs
+6. No further section change fires (since the user is already on the "My POI" tab, nothing to trigger a new event)
+7. **Result:** "My POI" is visually open but POI markers are hidden on the map
+
+**The fix:** Either:
+1. Emit `section-change` again in `#onMapLoaded()` based on current DOM state, OR
+2. Read the current open section from the DOM in `#onMapLoaded()` instead of `#activeSection`, OR
+3. Register the listener before `connectedCallback` runs (not possible since sidebar is in HTML already)
+
+The cleanest fix is to read the actual open section from the DOM in `#onMapLoaded()`:
+The fix: In `#onMapLoaded()`, instead of relying on `#activeSection` (which may be stale because the initial `section-change` fires before the listener is registered in `start()`), read the currently-open section directly from the DOM.
+Now let me update `src/version.js`:
+Now let me update KNOWLEDGE.md and CODEOVERVIEW.md to document this bug fix:
+**Root cause found and fixed.**
+
+The bug was a timing issue in `main.js:#onMapLoaded()`:
+
+`AppSidebarComponent.connectedCallback()` fires when the browser parses the HTML — which is *before* `App.start()` registers the `section-change` listener. So the initial `section-change` event (emitted by `#restoreAccordion()` to restore the saved accordion state from `localStorage`) was **missed**. As a result, `#activeSection` always remained `'rides'` regardless of what was saved.
+
+When `#onMapLoaded()` applied tab-based visibility, it computed `showPoi = (#activeSection === 'poi')` → always `false` → `setPoiVisibility(false)` → all POI markers hidden. If the user had "My POI" open (from a previous session), they'd see the section open in the sidebar but no markers on the map.
+
+**The fix** (`main.js:238-244`): Instead of trusting `#activeSection`, read the currently-open section directly from the DOM (`.accordion-section.open` element), update `#activeSection` to match, then apply the correct visibility. This correctly handles the case where `localStorage` restores the "My POI" (or any other) section on page load.

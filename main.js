@@ -233,11 +233,15 @@ class App {
     if (darkMap) this.#map.setDarkMap(true);
 
     // Apply tab-based visibility now that map renderers are ready.
-    // The section-change event fired during connectedCallback was a no-op
-    // because renderers didn't exist yet — apply it now.
-    const showTrips   = this.#activeSection === 'rides'   || this.#activeSection === null;
-    const showPoi     = this.#activeSection === 'poi'     || this.#activeSection === null;
-    const showPlanner = this.#activeSection === 'planner' || this.#activeSection === null;
+    // The section-change event fired during connectedCallback may have fired
+    // before the listener in start() was registered (element was already in
+    // the DOM when the App constructor ran).  Read the open section directly
+    // from the DOM to ensure we have the correct restored value.
+    const openSection = this.#sidebar.querySelector('.accordion-section.open')?.dataset.section ?? null;
+    this.#activeSection = openSection;
+    const showTrips   = openSection === 'rides'   || openSection === null;
+    const showPoi     = openSection === 'poi'     || openSection === null;
+    const showPlanner = openSection === 'planner' || openSection === null;
     this.#map.setTripLayersVisibility(showTrips);
     this.#map.setPoiVisibility(showPoi && poiEnabled);
     this.#map.setPlannedRouteVisibility(showPlanner);

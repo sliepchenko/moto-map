@@ -619,3 +619,5 @@ Paths are relative to the `data/` directory. Add new trips here — no JS change
 9. **No trip editing** — trips are static JSON files. There is no in-app editor. To add/modify a trip, edit the JSON file directly and add it to the manifest.
 
 10. **Map center is hardcoded to Zagreb** (`ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 }` in `MapController.js`). To fork the project for a different region, change this constant and the default zoom level.
+
+12. **Initial `section-change` event timing** — `AppSidebarComponent.connectedCallback()` fires when the element is parsed from the HTML, which is before `App.start()` registers the `section-change` listener. This means the initial accordion state restored from `localStorage` must be re-read directly from the DOM in `#onMapLoaded()` (via `.accordion-section.open`), not from `#activeSection`. The fix is in `main.js:#onMapLoaded()` which queries the DOM for the currently open section and updates `#activeSection` before applying visibility.
