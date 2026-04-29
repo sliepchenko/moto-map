@@ -4,9 +4,10 @@
 
 Before starting any task, read these files in order:
 
-1. `README.md` — project entry point for humans
+1. `CODEOVERVIEW.md` — fast code reference: every class, method signature, event, and key constant. Read this **first** to understand the codebase without scanning source files.
 2. `KNOWLEDGE.md` — AI knowledge storage, technical decisions, known issues, anything else what can be usefull for AI Agents during their duties
 3. `ROADMAP.md` — current roadmap and feature status
+4. `README.md` — project entry point for humans (only if CODEOVERVIEW.md and KNOWLEDGE.md are insufficient)
 
 After completing the task, update the following files:
 
