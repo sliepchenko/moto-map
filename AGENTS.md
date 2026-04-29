@@ -11,6 +11,13 @@ Before starting any task, read these files in order:
 
 After completing the task, update the following files:
 
+### CODEOVERVIEW.md
+Keep the fast code reference up to date. Reflect any changes to:
+- Class and function signatures
+- Method names and parameters
+- Events and key constants
+- Any new or removed modules
+
 ### README.md
 Update to reflect the current state of the project. This is the human entry point — keep it accurate, clear, and up to date regarding:
 - What the project is
