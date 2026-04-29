@@ -291,15 +291,15 @@ export class RoutePlannerComponent extends HTMLElement {
           </button>
         </div>
         <div class="rp-actions">
-          <button class="rp-btn rp-btn-directions" id="rp-go-btn" disabled>Get Directions</button>
-          <button class="rp-btn rp-btn-save" id="rp-save-btn" disabled>Download Route</button>
+          <button class="rp-btn rp-btn-directions" id="rp-go-btn" disabled>Build</button>
+          <button class="rp-btn rp-btn-save" id="rp-save-btn" disabled>Download</button>
           <button class="rp-btn rp-btn-gmaps" id="rp-gmaps-btn" disabled title="Open this route in Google Maps">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
               <polyline points="15 3 21 3 21 9"/>
               <line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>Google Maps
+            </svg>Google
           </button>
           <button class="rp-btn rp-btn-clear" id="rp-clear-btn">Clear</button>
         </div>
