@@ -2,20 +2,17 @@ import { EventEmitter }           from '../core/EventEmitter.js';
 import { assignTripColors }       from '../core/ColorUtils.js';
 import { MapLoader }              from './MapLoader.js';
 import { TripRenderer }           from './TripRenderer.js';
-import { PoiRenderer }            from './PoiRenderer.js';
 import { RouteRenderer }          from './RouteRenderer.js';
 import { FuelStationRenderer }    from './FuelStationRenderer.js';
 import { NearbyPlacesRenderer }   from './NearbyPlacesRenderer.js';
 import { TripRepository }         from '../data/TripRepository.js';
-import { PoiRepository }          from '../data/PoiRepository.js';
 
 /** Default map centre (Zagreb, Croatia). */
 const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
 const DEFAULT_ZOOM  = 12;
 
 /**
- * Orchestrates Google Maps initialisation, data loading, trip/POI rendering,
- * and selection state.
+ * Orchestrates Google Maps initialisation, data loading, and trip rendering.
  *
  * Emits:
  *  - `'load'`          — once all data has been rendered and the map is ready.
@@ -36,19 +33,16 @@ export class MapController extends EventEmitter {
    * @param {string}          apiKey
    * @param {HTMLElement}     container   - element to mount the map into
    * @param {TripRepository}  [tripRepo]
-   * @param {PoiRepository}   [poiRepo]
    */
   constructor(
     apiKey,
     container,
     tripRepo = new TripRepository(),
-    poiRepo  = new PoiRepository(),
   ) {
     super();
     this.#apiKey    = apiKey;
     this.#container = container;
     this.#tripRepo  = tripRepo;
-    this.#poiRepo   = poiRepo;
   }
 
   // ── private fields ────────────────────────────────────────────────────────
@@ -56,19 +50,16 @@ export class MapController extends EventEmitter {
   /** @type {string} */              #apiKey;
   /** @type {HTMLElement} */         #container;
   /** @type {TripRepository} */      #tripRepo;
-  /** @type {PoiRepository} */       #poiRepo;
 
   /** @type {google.maps.Map|null} */ #map       = null;
   /** @type {Object[]} */             #trips     = [];
-  /** @type {Object[]} */             #pois      = [];
   /** @type {Map<string, { trip: Object, polyline: google.maps.Polyline, basePolyline: google.maps.Polyline, markers: google.maps.Marker[] }>} */
   #tripLayers = new Map();
-  /** @type {google.maps.Marker[]} */                        #poiMarkers    = [];
   /** @type {string|null} */                                 #activeId      = null;
   /**
    * Shared holder passed to every renderer so that opening any InfoWindow
-   * (POI click, waypoint click, or programmatic openPoi) always closes the
-   * previously open one, regardless of which renderer created it.
+   * (waypoint click or programmatic focus) always closes the previously
+   * open one, regardless of which renderer created it.
    *
    * @type {{ current: google.maps.InfoWindow|null }}
    */
@@ -119,8 +110,6 @@ export class MapController extends EventEmitter {
   get map()   { return this.#map; }
   /** Loaded trip objects (available after `'load'`). */
   get trips() { return this.#trips; }
-  /** Loaded POI objects (available after `'load'`). */
-  get pois()  { return this.#pois; }
 
   /**
    * Bootstraps the map, loads data, and renders everything.
@@ -161,27 +150,6 @@ export class MapController extends EventEmitter {
       if (layer) this.#fitToTrip(layer.trip);
     } else {
       if (this.#trips.length > 0) this.#fitToAllTrips();
-    }
-  }
-
-  /**
-   * Pans to and opens the InfoWindow of the POI at `index`.
-   *
-   * @param {number} index - zero-based index in the `pois` array
-   */
-  openPoi(index) {
-    const marker = this.#poiMarkers[index];
-    if (!marker) return;
-
-    // Close any previously open InfoWindow before opening the new one
-    this.#openInfoWindow.current?.close();
-
-    this.#map.panTo(marker.getPosition());
-    this.#map.setZoom(15);
-
-    if (marker._infoWindow) {
-      marker._infoWindow.open(this.#map, marker);
-      this.#openInfoWindow.current = marker._infoWindow;
     }
   }
 
@@ -370,14 +338,6 @@ export class MapController extends EventEmitter {
   }
 
   /**
-   * Shows or hides all POI markers on the map.
-   * @param {boolean} enabled
-   */
-  setPoiVisibility(enabled) {
-    this.#poiMarkers.forEach(marker => marker.setVisible(enabled));
-  }
-
-  /**
    * Shows or hides all trip polylines and their waypoint markers on the map.
    * Used to hide trips when the "My Rides" tab is not active.
    * @param {boolean} enabled
@@ -462,14 +422,10 @@ export class MapController extends EventEmitter {
 
   async #onMapReady() {
     try {
-      const [trips, pois] = await Promise.all([
-        this.#tripRepo.fetchAll(),
-        this.#poiRepo.fetchAll(),
-      ]);
+      const trips = await this.#tripRepo.fetchAll();
 
       assignTripColors(trips);
       this.#trips = trips;
-      this.#pois  = pois;
 
       const tripRenderer = new TripRenderer(this.#map, this.#openInfoWindow);
       this.#tripRenderer = tripRenderer;
@@ -479,9 +435,6 @@ export class MapController extends EventEmitter {
         });
         this.#tripLayers.set(trip.id, { trip, polyline, basePolyline: _basePolyline, markers });
       });
-
-      const poiRenderer  = new PoiRenderer(this.#map, this.#openInfoWindow);
-      this.#poiMarkers   = poiRenderer.renderAll(pois);
 
       // Initialise route planner renderer, fuel station renderer, and geocoder
       this.#routeRenderer = new RouteRenderer(this.#map, this.#openInfoWindow);

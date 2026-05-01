@@ -20,7 +20,7 @@
 
 ```
 index.html                          31 lines — minimal PWA shell
-main.js                            643 lines — App class; entry point
+main.js                            ~560 lines — App class; entry point
 style.css                                    — global CSS (sidebar, accordion, responsive)
 theme.json                                   — Google Maps light style
 dark-theme.json                              — Google Maps dark style
@@ -34,35 +34,31 @@ src/core/
 
 src/data/
   TripRepository.js                 49 lines — fetches trips manifest + files
-  PoiRepository.js                  38 lines — fetches pois.json
 
 src/state/
-  UrlStateManager.js                70 lines — ?trip= / ?poi= URL params
+  UrlStateManager.js                45 lines — ?trip= URL param
 
 src/map/
   MapLoader.js                      70 lines — injects Maps <script>, loads theme
-  MapController.js                 565 lines — central orchestrator (extends EventEmitter)
+  MapController.js                 ~530 lines — central orchestrator (extends EventEmitter)
   TripRenderer.js                  193 lines — draws trip polylines + waypoint markers
-  PoiRenderer.js                    94 lines — draws POI markers + InfoWindows
   RouteRenderer.js                 581 lines — draws planned route + alternatives
   FuelStationRenderer.js           268 lines — fuel station search + markers
   NearbyPlacesRenderer.js          370 lines — nearby-places search + markers
 
 src/components/
-  AppSidebarComponent.js           192 lines — <app-sidebar> — accordion shell
+  AppSidebarComponent.js           176 lines — <app-sidebar> — accordion shell
   TripListComponent.js             202 lines — <trip-list>
-  PoiListComponent.js              108 lines — <poi-list>
   RoutePlannerComponent.js         727 lines — <route-planner>
-  AppSettingsComponent.js          199 lines — <app-settings>
+  AppSettingsComponent.js          ~185 lines — <app-settings>
   NearbyPlacesPanel.js             219 lines — <nearby-places>
   TripStatsPanel.js                 89 lines — <trip-stats-panel> (unused / legacy)
 
 data/
   trips/index.json                           — trip manifest (list of file paths)
   trips/trip_*.json                          — individual trip files
-  pois.json                                  — Points of Interest
 
-assets/icons/                                — SVG icons for POIs and nearby places
+assets/icons/                                — SVG icons for nearby places (all 36×36, colored-circle style)
 ```
 
 ---
@@ -76,16 +72,13 @@ assets/icons/                                — SVG icons for POIs and nearby p
 | `MapController` | `src/map/MapController.js` | `EventEmitter` |
 | `MapLoader` | `src/map/MapLoader.js` | — |
 | `TripRenderer` | `src/map/TripRenderer.js` | — |
-| `PoiRenderer` | `src/map/PoiRenderer.js` | — |
 | `RouteRenderer` | `src/map/RouteRenderer.js` | — |
 | `FuelStationRenderer` | `src/map/FuelStationRenderer.js` | — |
 | `NearbyPlacesRenderer` | `src/map/NearbyPlacesRenderer.js` | — |
 | `TripRepository` | `src/data/TripRepository.js` | — |
-| `PoiRepository` | `src/data/PoiRepository.js` | — |
 | `UrlStateManager` | `src/state/UrlStateManager.js` | — |
 | `AppSidebarComponent` | `src/components/AppSidebarComponent.js` | `HTMLElement` |
 | `TripListComponent` | `src/components/TripListComponent.js` | `HTMLElement` |
-| `PoiListComponent` | `src/components/PoiListComponent.js` | `HTMLElement` |
 | `RoutePlannerComponent` | `src/components/RoutePlannerComponent.js` | `HTMLElement` |
 | `AppSettingsComponent` | `src/components/AppSettingsComponent.js` | `HTMLElement` |
 | `NearbyPlacesPanel` | `src/components/NearbyPlacesPanel.js` | `HTMLElement` |
@@ -93,7 +86,7 @@ assets/icons/                                — SVG icons for POIs and nearby p
 
 ---
 
-## App (main.js:643)
+## App (main.js:~560)
 
 **Instantiation order in `constructor()`:**
 1. `UrlStateManager`
@@ -107,7 +100,7 @@ assets/icons/                                — SVG icons for POIs and nearby p
 #urlState: UrlStateManager
 #lastRouteSummaries: Array<summary>     // from last renderPlannedRoute()
 #lastRoutePath: Array<{lat,lng}>        // active route path for nearby-places refresh
-#activeSection: string|null             // 'rides'|'poi'|'planner'|null — default 'rides'
+#activeSection: string|null             // 'rides'|'planner'|null — default 'rides'
 ```
 
 **Wiring in `start()`:**
@@ -115,7 +108,6 @@ assets/icons/                                — SVG icons for POIs and nearby p
 - `#map.on('trip-distance', ...)` → `tripList.updateTripDistance()`
 - `#map.on('map-pick', ...)` → `planner.addMapPoint()`
 - `#sidebar.addEventListener('trip-select', ...)`
-- `#sidebar.addEventListener('poi-select', ...)`
 - `#sidebar.addEventListener('section-change', ...)` → `#onSectionChange()`
 - `#sidebar.addEventListener('route-*', ...)` — all route planner events
 - `#sidebar.addEventListener('setting-change', ...)` → `#onSettingChange()`
@@ -130,7 +122,7 @@ assets/icons/                                — SVG icons for POIs and nearby p
 
 ---
 
-## MapController (src/map/MapController.js:565)
+## MapController (src/map/MapController.js:~530)
 
 `extends EventEmitter`. Central map hub — owns all renderers and shared state.
 
@@ -138,9 +130,7 @@ assets/icons/                                — SVG icons for POIs and nearby p
 ```js
 #map: google.maps.Map|null
 #trips: Object[]
-#pois: Object[]
 #tripLayers: Map<tripId, { trip, polyline, basePolyline, markers }>
-#poiMarkers: google.maps.Marker[]
 #activeId: string|null
 #openInfoWindow: { current: google.maps.InfoWindow|null }  // shared ref — one InfoWindow at a time
 #showRouteDirections: boolean                              // default true
@@ -162,7 +152,6 @@ assets/icons/                                — SVG icons for POIs and nearby p
 ```js
 async init()                                      // load map + data + renderers; emits 'load'
 selectTrip(id: string|null)                       // highlight trip, fit viewport
-openPoi(index: number)                            // pan + zoom 15 + open InfoWindow
 async geocode(address: string) → {lat,lng}|null
 setRouteDoubleClickHandler(fn)
 setMarkerDragHandler(fn)
@@ -179,7 +168,6 @@ focusNearbyPlace(placeId)
 setNearbyPlaceAddToRouteHandler(fn)
 setFuelStationAddToRouteHandler(fn)
 setRouteDirections(enabled: boolean)
-setPoiVisibility(enabled: boolean)
 setTripLayersVisibility(enabled: boolean)
 setPlannedRouteVisibility(enabled: boolean)       // delegates to 3 renderers
 setTerrainEnabled(enabled: boolean)
@@ -213,21 +201,6 @@ render(trip, onDistanceReady?) → { polyline, markers, _basePolyline }
 - Sets `trip._roadDistanceKm` on trip object after API responds
 - Waypoint markers: endpoints scale 8 fill `#166534`; intermediates scale 5 with trip `_color`; only `isVisible:true` waypoints rendered
 - `avoidHighways`, `avoidTolls`, `avoidFerries` passed through from trip JSON
-
----
-
-## PoiRenderer (src/map/PoiRenderer.js:94)
-
-```js
-constructor(map, openInfoWindow)
-renderAll(pois: Object[]) → google.maps.Marker[]
-```
-
-- `POI_ICON_MAP`: `{ fuel, hotel, cafe, mechanic, water, viewpoint, castle, campsite }` → `assets/icons/*.svg`
-  - Uses same colored-circle style as NearbyPlacesRenderer; hotel→`emoji-hotel.svg`, campsite→`emoji-campsite.svg`, mechanic→`poi-mechanic.svg`, water→`poi-water.svg`, castle→`poi-castle.svg`
-- Icon size 36×36, anchor (18,18)
-- InfoWindow uses `headerContent` (new Maps API pattern)
-- Google Maps link uses `address` if present, else `lat,lng`
 
 ---
 
@@ -304,8 +277,8 @@ focusPlace(placeId)                  // pan + zoom 15 + open InfoWindow
 
 - `SEARCH_RADIUS_M = 3_000`, `SAMPLE_INTERVAL_M = 15_000` (15 km)
 - All `(category × samplePoint)` searches in parallel; deduplicated by `place_id`; sorted by rating desc
-- Icon size 28×28; zIndex 140; `marker._placeId`, `marker._categoryId` set on each marker
-- Icons starting with `emoji-` are SVG circles with emoji character
+- Icon size 32×32; zIndex 140; `marker._placeId`, `marker._categoryId` set on each marker
+- All icons are SVG colored circles with pure vector symbols (no text/emoji chars) matching category color
 
 **NearbyPlace typedef:** `{ id, name, vicinity, category, lat, lng, rating, isOpen }`
 
@@ -378,29 +351,26 @@ async fetchAll() → Object[]            // returns [] on any error; reads data.
 
 ---
 
-## UrlStateManager (src/state/UrlStateManager.js:70)
+## UrlStateManager (src/state/UrlStateManager.js:45)
 
 Stateless — reads from `window.location` on every call.
 
 ```js
 getTripId() → string|null
-getPoiIndex() → number|null
-pushTrip(id: string|null)             // sets ?trip=; clears ?poi=
-pushPoi(index: number)                // sets ?poi=; clears ?trip=
-onNavigate(handler) → () => void      // listens popstate; handler({ tripId, poiIndex })
+pushTrip(id: string|null)             // sets ?trip=
+onNavigate(handler) → () => void      // listens popstate; handler({ tripId })
 ```
 
 ---
 
-## AppSidebarComponent (src/components/AppSidebarComponent.js:192)
+## AppSidebarComponent (src/components/AppSidebarComponent.js:176)
 
 Custom element `<app-sidebar>`. No Shadow DOM.
 
 ```js
 show()
-openSection(name: 'rides'|'poi'|'planner')   // closes all others; emits section-change
+openSection(name: 'rides'|'planner')   // closes all others; emits section-change
 get tripList()    → TripListComponent
-get poiList()     → PoiListComponent
 get routePlanner() → RoutePlannerComponent
 get settings()    → AppSettingsComponent
 get nearbyPlaces() → NearbyPlacesPanel
@@ -430,21 +400,6 @@ updateTripDistance(tripId, km)        // patches badge without full re-render
 
 - Date format: `en-GB` locale `{ day:'numeric', month:'short', year:'numeric' }`
 - Module-level `buildGoogleMapsUrl(waypoints)` builds Google Maps Directions URL
-
----
-
-## PoiListComponent (src/components/PoiListComponent.js:108)
-
-Custom element `<poi-list>`.
-
-```js
-setPoiList(pois: Object[])
-setActive(index: number|null)
-```
-
-**Emits:** `poi-select` — `{ index: number }`
-
-- `POI_EMOJI` map includes typo key `'abadoned'` (should be 'abandoned') — do not "fix" without also fixing data
 
 ---
 
@@ -483,18 +438,18 @@ get avoidHighways / avoidTolls / avoidFerries
 
 ---
 
-## AppSettingsComponent (src/components/AppSettingsComponent.js:199)
+## AppSettingsComponent (src/components/AppSettingsComponent.js:~185)
 
 Custom element `<app-settings>`.
 
 ```js
-get values()    // { showRouteDirections, showPoi, showTerrain, darkMap }
+get values()    // { showRouteDirections, showTerrain, darkMap }
 ```
 
 **Emits:** `setting-change` — `{ key: string, value: boolean }`
 
 - Persisted to `localStorage` key `'moto-map:settings'`
-- Defaults: `{ showRouteDirections:true, showPoi:true, showTerrain:true, darkMap:false }`
+- Defaults: `{ showRouteDirections:true, showTerrain:true, darkMap:false }`
 - `#formatVersion()` converts `APP_VERSION_DATE` UTC → local `YYYY-MM-DD HH:MM`
 
 ---
@@ -568,9 +523,9 @@ RouteRenderer (dragend)
 ### Browser back/forward
 ```
 UrlStateManager popstate
-  → App.#onNavigate({ tripId, poiIndex })
-    → MapController.selectTrip() | openPoi()
-    → sidebar components .setActive()
+  → App.#onNavigate({ tripId })
+    → MapController.selectTrip()
+    → TripListComponent.setActive()
 ```
 
 ### Accordion section change
@@ -578,7 +533,6 @@ UrlStateManager popstate
 AppSidebarComponent → section-change { section }
   → App.#onSectionChange()
     → MapController.setTripLayersVisibility()
-    → MapController.setPoiVisibility()
     → MapController.setPlannedRouteVisibility()
 ```
 
@@ -586,14 +540,11 @@ AppSidebarComponent → section-change { section }
 
 ## Tab → map layer visibility
 
-| Active section | Trips | POIs | Planned route |
-|---|---|---|---|
-| `rides` | yes | no | no |
-| `poi` | no | yes* | no |
-| `planner` | no | no | yes |
-| `null` (all collapsed) | yes | yes* | yes |
-
-\* POIs also gated by `showPoi` setting (AND logic)
+| Active section | Trips | Planned route |
+|---|---|---|
+| `rides` | yes | no |
+| `planner` | no | yes |
+| `null` (all collapsed) | yes | yes |
 
 ---
 
@@ -618,12 +569,6 @@ AppSidebarComponent → section-change { section }
 ```
 
 Optional fields: `description`, `distance_km`, `duration_hours`, `tags[]`, `color`, `roadDistanceKm`, `avoidHighways/Tolls/Ferries`
-
-### POI JSON (`data/pois.json`)
-```json
-[{ "title": "...", "type": "viewpoint", "lat": 0, "lng": 0, "description": "...", "address": "..." }]
-```
-Supported types: `cafe`, `fuel`, `hotel`, `mechanic`, `water`, `viewpoint`, `castle`
 
 ### Trip manifest (`data/trips/index.json`)
 ```json
@@ -654,13 +599,13 @@ Paths relative to `data/`. No JS changes needed to add a trip — just add file 
 1. **`TravelMode.TWO_WHEELER`** not available in all countries — falls back to straight line with `console.warn`.
 2. **No alternatives for multi-stop routes** — Google API limitation.
 3. **Legacy `PlacesService`** — may be deprecated; no caching between recalculations.
-4. **`PoiListComponent` typo** — `POI_EMOJI` has key `'abadoned'`; do not fix unless data is also fixed.
-5. **`TripStatsPanel`** is registered but never instantiated in `main.js`.
-6. **API key is public** — visible in source; restrict by HTTP referrer.
-7. **`GeoUtils.haversineKm` fallback** is shorter than real road distance; prefer `_roadDistanceKm`.
-8. **No Shadow DOM** — all CSS is global; new components must not introduce class name conflicts.
-9. **Service worker** — `sw.js` must be updated when new asset paths are added.
-10. **`PoiRepository.fetchAll()`** returns `[]` silently on HTTP error; check `data/pois.json` path if POIs are missing.
+4. **`TripStatsPanel`** is registered but never instantiated in `main.js`.
+5. **API key is public** — visible in source; restrict by HTTP referrer.
+6. **`GeoUtils.haversineKm` fallback** is shorter than real road distance; prefer `_roadDistanceKm`.
+7. **No Shadow DOM** — all CSS is global; new components must not introduce class name conflicts.
+8. **Service worker** — `sw.js` must be updated when new asset paths are added.
+9. **SVG icon design rule** — all icons must use pure vector shapes (no `<text>` or emoji characters). SVG text with emoji fails when loaded as marker `url` in Google Maps (no font access in image context).
+10. **`NearbyPlacesRenderer` icon fallback** uses `assets/icons/viewpoint.svg` for unknown category IDs.
 
 ---
 

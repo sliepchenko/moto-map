@@ -296,8 +296,8 @@ export class NearbyPlacesRenderer {
         title:  place.name,
         icon: {
           url:        cat?.icon ?? 'assets/icons/viewpoint.svg',
-          scaledSize: new google.maps.Size(28, 28),
-          anchor:     new google.maps.Point(14, 14),
+          scaledSize: new google.maps.Size(32, 32),
+          anchor:     new google.maps.Point(16, 16),
         },
         zIndex: 140,
       });

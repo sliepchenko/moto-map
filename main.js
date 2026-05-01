@@ -17,7 +17,6 @@ import { PLACE_CATEGORIES }     from './src/map/NearbyPlacesRenderer.js';
 
 // Register WebComponents before the DOM parser encounters their tags.
 import './src/components/TripListComponent.js';
-import './src/components/PoiListComponent.js';
 import './src/components/AppSidebarComponent.js';
 import './src/components/RoutePlannerComponent.js';
 import './src/components/AppSettingsComponent.js';
@@ -49,7 +48,7 @@ class App {
   #lastRoutePath = [];
 
   /**
-   * The currently open accordion section ('rides' | 'poi' | 'planner' | null).
+   * The currently open accordion section ('rides' | 'planner' | null).
    * Kept in sync with `section-change` events so other handlers can read it.
    * @type {string|null}
    */
@@ -83,9 +82,6 @@ class App {
 
     // Wire sidebar trip-select events
     this.#sidebar.addEventListener('trip-select', e => this.#onTripSelect(e));
-
-    // Wire sidebar poi-select events
-    this.#sidebar.addEventListener('poi-select', e => this.#onPoiSelect(e));
 
     // Wire route planner events (bubbled from <route-planner> inside the sidebar)
     this.#sidebar.addEventListener('route-geocode',            e => this.#onRouteGeocode(e));
@@ -216,16 +212,15 @@ class App {
   // ── private handlers ─────────────────────────────────────────────────────
 
   #onMapLoaded() {
-    const { tripList, poiList } = this.#sidebar;
+    const { tripList } = this.#sidebar;
 
     tripList.setTrips(this.#map.trips);
-    poiList.setPoiList(this.#map.pois);
 
     this.#sidebar.show();
 
     // Apply persisted settings now that the map layers exist
     const settings = this.#sidebar.querySelector('app-settings');
-    const { showRouteDirections = true, showPoi: poiEnabled = true, showTerrain = true, darkMap = false } =
+    const { showRouteDirections = true, showTerrain = true, darkMap = false } =
       settings?.values ?? {};
 
     if (!showRouteDirections) this.#map.setRouteDirections(false);
@@ -240,20 +235,14 @@ class App {
     const openSection = this.#sidebar.querySelector('.accordion-section.open')?.dataset.section ?? null;
     this.#activeSection = openSection;
     const showTrips   = openSection === 'rides'   || openSection === null;
-    const showPoi     = openSection === 'poi'     || openSection === null;
     const showPlanner = openSection === 'planner' || openSection === null;
     this.#map.setTripLayersVisibility(showTrips);
-    this.#map.setPoiVisibility(showPoi && poiEnabled);
     this.#map.setPlannedRouteVisibility(showPlanner);
 
     // Restore URL state on first load
-    const tripId   = this.#urlState.getTripId();
-    const poiIndex = this.#urlState.getPoiIndex();
+    const tripId = this.#urlState.getTripId();
 
-    if (poiIndex !== null) {
-      this.#sidebar.openSection('poi');
-      this.#applyPoi(poiIndex);
-    } else if (tripId) {
+    if (tripId) {
       this.#applyTrip(tripId);
     }
   }
@@ -264,24 +253,13 @@ class App {
     this.#applyTrip(id);
   }
 
-  /** Handles the `poi-select` CustomEvent from `<poi-list>`. */
-  #onPoiSelect({ detail: { index } }) {
-    this.#urlState.pushPoi(index);
-    this.#applyPoi(index);
-  }
-
   /** Handles browser back/forward navigation. */
-  #onNavigate({ tripId, poiIndex }) {
-    if (poiIndex !== null) {
-      this.#sidebar.openSection('poi');
-      this.#applyPoi(poiIndex);
-    } else if (tripId) {
+  #onNavigate({ tripId }) {
+    if (tripId) {
       this.#sidebar.openSection('rides');
-      this.#sidebar.poiList.setActive(null);
       this.#applyTrip(tripId);
     } else {
       this.#applyTrip(null);
-      this.#sidebar.poiList.setActive(null);
     }
   }
 
@@ -292,15 +270,6 @@ class App {
   #applyTrip(id) {
     this.#map.selectTrip(id ?? null);
     this.#sidebar.tripList.setActive(id ?? null);
-  }
-
-  /**
-   * Opens a POI on the map and highlights the sidebar item.
-   * @param {number} index
-   */
-  #applyPoi(index) {
-    this.#map.openPoi(index);
-    this.#sidebar.poiList.setActive(index);
   }
 
   // ── route planner handlers ─────────────────────────────────────────────────
@@ -502,11 +471,6 @@ class App {
     if (key === 'showRouteDirections') {
       this.#map.setRouteDirections(value);
     }
-    if (key === 'showPoi') {
-      // Only make POIs visible if the current section also warrants it.
-      const showPoi = (this.#activeSection === 'poi' || this.#activeSection === null) && value;
-      this.#map.setPoiVisibility(showPoi);
-    }
     if (key === 'showTerrain') {
       this.#map.setTerrainEnabled(value);
     }
@@ -519,7 +483,6 @@ class App {
    * Adjusts map layer visibility based on which sidebar tab is active.
    *
    * - "rides"   → show trips only
-   * - "poi"     → show POIs only
    * - "planner" → show planned route / fuel / nearby places only
    * - null      → all collapsed; show everything
    *
@@ -532,17 +495,9 @@ class App {
     this.#activeSection = section;
 
     const showTrips   = section === 'rides'   || section === null;
-    const showPoi     = section === 'poi'     || section === null;
     const showPlanner = section === 'planner' || section === null;
 
     this.#map.setTripLayersVisibility(showTrips);
-
-    // Respect the "Show POI" setting: only make POIs visible if the setting
-    // permits it AND the active section warrants it.
-    const settings    = this.#sidebar.querySelector('app-settings');
-    const poiEnabled  = settings ? settings.values.showPoi : true;
-    this.#map.setPoiVisibility(showPoi && poiEnabled);
-
     this.#map.setPlannedRouteVisibility(showPlanner);
   }
 
