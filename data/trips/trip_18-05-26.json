@@ -1,0 +1,29 @@
+{
+  "id": "trip_18-05-26",
+  "title": "Ride from kosirnikova 66",
+  "date": "2026-05-18",
+  "waypoints": [
+    { "lat": 45.81314454115758, "lng": 15.956034141568503, "isVisible": true },
+    {
+      "lat": 45.7368932,
+      "lng": 15.6552178,
+      "label": "Klet Poljanica",
+      "isVisible": true
+    },
+    {
+      "lat": 45.7411234,
+      "lng": 15.6035549,
+      "label": "Planinarski Dom Žitnica",
+      "isVisible": true
+    },
+    {
+      "lat": 45.793874638876446,
+      "lng": 15.654650362171392,
+    },
+    { "lat": 45.81314454115758, "lng": 15.956034141568503, "isVisible": true }
+  ],
+  "avoidHighways": false,
+  "avoidTolls": false,
+  "avoidFerries": false,
+  "roadDistanceKm": 108.014
+}
