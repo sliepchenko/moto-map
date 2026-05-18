@@ -22,8 +22,7 @@
     },
     { "lat": 45.81314454115758, "lng": 15.956034141568503, "isVisible": true }
   ],
-  "avoidHighways": false,
-  "avoidTolls": false,
-  "avoidFerries": false,
-  "roadDistanceKm": 108.014
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": true
 }
