@@ -1,0 +1,53 @@
+{
+  "id": "trip_05-07-26",
+  "title": "Ride from Camp Bohinj, Ukanc 5, 4265 Bohinjsko jezero",
+  "date": "2026-07-05",
+  "waypoints": [
+    {
+      "lat": 46.2789271,
+      "lng": 13.8377406,
+      "isVisible": true,
+      "label": "Camp Bohinj, Ukanc 5, 4265 Bohinjsko jezero"
+    },
+    {
+      "lat": 46.4740417,
+      "lng": 13.7840952,
+      "label": "Lake Jasna, 4280 Kranjska Gora"
+    },
+    {
+      "lat": 46.432897,
+      "lng": 13.7430709,
+      "label": "Vršič Pass, 5232 Soča"
+    },
+    {
+      "lat": 46.3372098,
+      "lng": 13.6459342,
+      "label": "Great Soča Gorge, 5232 Soča"
+    },
+    {
+      "lat": 46.2476549,
+      "lng": 13.5791749,
+      "label": "Kobarid, 5222"
+    },
+    {
+      "lat": 46.1520769,
+      "lng": 13.7429945,
+      "label": "Most-na-soci, 5216"
+    },
+    {
+      "lat": 46.09879007263984,
+      "lng": 14.461935858057942,
+      "label": "46.09879, 14.46194"
+    },
+    {
+      "lat": 45.81316374033368,
+      "lng": 15.95598595666272,
+      "isVisible": true,
+      "label": "45.81316, 15.95599"
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": true,
+  "roadDistanceKm": 383.46799999999996
+}
