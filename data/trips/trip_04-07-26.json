@@ -11,26 +11,31 @@
     {
       "lat": 46.27163609999999,
       "lng": 14.2671764,
+      "isVisible": true,
       "label": "Slap Šum, 4201 Zgornja Besnica"
     },
     {
       "lat": 46.27516259999999,
       "lng": 14.2139734,
+      "isVisible": true,
       "label": "Katoliška cerkev Svetega Primoža in Felicijana, 4201 Jamnik"
     },
     {
       "lat": 46.3633546,
       "lng": 14.1016458,
+      "isVisible": true,
       "label": "Wooden house on the lake, Cesta svobode 14, 4260 Bled"
     },
     {
       "lat": 46.2697809,
       "lng": 13.9125387,
+      "isVisible": true,
       "label": "Most na Rju, 4264 Polje"
     },
     {
       "lat": 46.2787572,
       "lng": 13.8870288,
+      "isVisible": true,
       "label": "Cerkev Sv. Janeza Krstnika, Ribčev Laz 56, 4265 Bohinjsko jezero"
     },
     {

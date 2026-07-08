@@ -1,6 +1,6 @@
 {
   "id": "trip_05-07-26",
-  "title": "Ride from Camp Bohinj back to home",
+  "title": "From Camp Bohinj back",
   "date": "2026-07-05",
   "waypoints": [
     {
@@ -12,38 +12,41 @@
     {
       "lat": 46.4740417,
       "lng": 13.7840952,
+      "isVisible": true,
       "label": "Lake Jasna, 4280 Kranjska Gora"
     },
     {
       "lat": 46.432897,
       "lng": 13.7430709,
+      "isVisible": true,
       "label": "Vršič Pass, 5232 Soča"
     },
     {
       "lat": 46.3372098,
       "lng": 13.6459342,
+      "isVisible": true,
       "label": "Great Soča Gorge, 5232 Soča"
     },
     {
       "lat": 46.2476549,
       "lng": 13.5791749,
+      "isVisible": true,
       "label": "Kobarid, 5222"
     },
     {
       "lat": 46.1520769,
       "lng": 13.7429945,
+      "isVisible": true,
       "label": "Most-na-soci, 5216"
     },
     {
       "lat": 46.09879007263984,
-      "lng": 14.461935858057942,
-      "label": "46.09879, 14.46194"
+      "lng": 14.461935858057942
     },
     {
       "lat": 45.81316374033368,
       "lng": 15.95598595666272,
-      "isVisible": true,
-      "label": "45.81316, 15.95599"
+      "isVisible": true
     }
   ],
   "avoidHighways": true,
