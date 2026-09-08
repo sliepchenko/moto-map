@@ -1,0 +1,27 @@
+{
+  "id": "trip_29-08-26",
+  "title": "Ride to Biker Part hosted my Castle Riders",
+  "date": "2026-08-29",
+  "waypoints": [
+    {
+      "lat": 45.81314299332813,
+      "lng": 15.956017043717532,
+      "isVisible": true
+    },
+    {
+      "lat": 45.8421862,
+      "lng": 15.6737701,
+      "label": "Bar 5-ka Slovenska",
+      "isVisible": true
+    },
+    {
+      "lat": 45.81311037850939,
+      "lng": 15.95604082394412,
+      "isVisible": true
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": false,
+  "avoidFerries": false,
+  "roadDistanceKm": 52.178
+}

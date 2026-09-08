@@ -1,0 +1,27 @@
+{
+  "id": "trip_16-08-26",
+  "title": "Ride to Mrežnica",
+  "date": "2026-08-16",
+  "waypoints": [
+    {
+      "lat": 45.81314649242169,
+      "lng": 15.955991953359021,
+      "isVisible": true
+    },
+    {
+      "lat": 45.40386126720499,
+      "lng": 15.448824558358636,
+      "label": "Mrežnica",
+      "isVisible": true
+    },
+    {
+      "lat": 45.81315165884233,
+      "lng": 15.956014948575751,
+      "isVisible": true
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": false,
+  "avoidFerries": false,
+  "roadDistanceKm": 158.386
+}
