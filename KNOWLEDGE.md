@@ -549,6 +549,16 @@ The solution is a per-trip static HTML page at `trip/<tripId>/index.html`. This 
 causes the crawler to fetch the static snapshot, which has the correct OG image and metadata.
 Clicking the link in the chat redirects to the live map.
 
+**Critical: `og:url` must equal the snapshot's own canonical path, NOT the SPA query-param URL.**
+Telegram, WhatsApp, and similar strict crawlers re-fetch the `og:url` value to verify the OG tags.
+If `og:url` pointed to `/?trip=<id>` (the SPA root), the crawler would re-read OG tags from the
+raw `index.html` which only has the generic default tags — resulting in `default.png` + "Moto Map"
+instead of the trip-specific image and title. Microsoft Teams is more permissive and trusts the tags
+from the page it crawled, which is why it worked while Telegram/WhatsApp did not.
+Fix: `og:url` in every `trip/<id>/index.html` snapshot is set to `${baseUrl}/trip/${tripId}/`
+(the snapshot URL itself). The redirect target for real users remains `/?trip=<id>` in the
+`<meta http-equiv="refresh">` and the inline `<script>`.
+
 ### Generating OG images
 
 ```bash

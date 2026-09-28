@@ -307,10 +307,17 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
  * }} opts
  */
 function buildTripSnapshotHtml({ tripId, title, description, baseUrl }) {
-  const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeDesc  = description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const appUrl    = `${baseUrl}/?trip=${tripId}`;
-  const imageUrl  = `${baseUrl}/assets/og/${tripId}.png`;
+  const safeTitle    = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeDesc     = description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Canonical URL for this snapshot page — must match the path crawlers actually fetch.
+  // Telegram, WhatsApp and similar crawlers re-fetch og:url to verify OG tags; if og:url
+  // points to the SPA root (/?trip=…) instead of this static snapshot path, they fall back
+  // to the generic site-level preview (default.png + "Moto Map" title) instead of the
+  // trip-specific one.  Keep og:url == the snapshot's own URL.
+  const canonicalUrl = `${baseUrl}/trip/${tripId}/`;
+  // Redirect target for real users — the live interactive app
+  const appUrl       = `${baseUrl}/?trip=${tripId}`;
+  const imageUrl     = `${baseUrl}/assets/og/${tripId}.png`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -325,7 +332,7 @@ function buildTripSnapshotHtml({ tripId, title, description, baseUrl }) {
   <!-- Open Graph -->
   <meta property="og:type"         content="website" />
   <meta property="og:site_name"    content="Moto Map" />
-  <meta property="og:url"          content="${appUrl}" />
+  <meta property="og:url"          content="${canonicalUrl}" />
   <meta property="og:title"        content="${safeTitle}" />
   <meta property="og:description"  content="${safeDesc}" />
   <meta property="og:image"        content="${imageUrl}" />
