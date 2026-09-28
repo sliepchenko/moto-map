@@ -1,7 +1,7 @@
 {
   "name": "Moto Map",
   "short_name": "MotoMap",
-  "description": "A motorcycle ride tracker — browse your routes and points of interest on an interactive map.",
+  "description": "A motorcycle ride tracker — browse my routes on an interactive map.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

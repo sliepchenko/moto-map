@@ -1,7 +1,7 @@
 {
   "name": "moto-map",
   "version": "1.0.0",
-  "description": "A fully static website that visualizes personal motorcycle trips on an interactive Google Maps map. Trip data and Points of Interest are stored as plain JSON files — no backend, no database, no build pipeline.",
+  "description": "A fully static website that visualizes personal motorcycle trips on an interactive Google Maps map. Trip data are stored as plain JSON files — no backend, no database, no build pipeline.",
   "main": "main.js",
   "scripts": {
     "generate-og": "node scripts/generate-og-images.js"

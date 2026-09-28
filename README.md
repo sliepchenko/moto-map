@@ -1,6 +1,6 @@
 # Moto Map — Motorcycle Trip Tracker
 
-A fully static website that visualizes personal motorcycle trips on an interactive Google Maps map. Trip data and Points of Interest are stored as plain JSON files — no backend, no database, no build pipeline.
+A fully static website that visualizes personal motorcycle trips on an interactive Google Maps map. Trip data are stored as plain JSON files — no backend, no database, no build pipeline.
 
 ---
 

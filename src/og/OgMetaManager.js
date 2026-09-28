@@ -76,7 +76,7 @@ export class OgMetaManager {
    */
   reset() {
     const defaultTitle = 'Moto Map';
-    const defaultDesc  = 'Browse your motorcycle routes and points of interest on an interactive map.';
+    const defaultDesc  = 'Browse my motorcycle routes on an interactive map.';
     const defaultImage = `${this.#baseUrl}/assets/og/default.png`;
     const defaultUrl   = `${this.#baseUrl}/`;
 

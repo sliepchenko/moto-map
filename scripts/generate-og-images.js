@@ -114,7 +114,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
   `;
 
   const subtitle = isSiteDefault
-    ? '<p class="subtitle">Browse your motorcycle routes and POIs on an interactive map.</p>'
+    ? '<p class="subtitle">Browse my motorcycle routes and POIs on an interactive map.</p>'
     : '';
 
   return `<!DOCTYPE html>
