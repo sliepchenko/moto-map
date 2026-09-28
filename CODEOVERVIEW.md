@@ -66,7 +66,7 @@ assets/icons/                                — SVG icons for nearby places (al
 assets/og/                                   — pre-generated 1200×630 PNG OG images (one per trip + default.png)
 
 scripts/
-  generate-og-images.js                      — Node script: renders OG PNGs via Puppeteer; run with `npm run generate-og`
+  generate-og-images.js                      — Node script: renders OG PNGs via Puppeteer; uses assets/moto.png (base64 embedded) for the moto icon; run with `npm run generate-og`
 ```
 
 ---

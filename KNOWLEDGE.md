@@ -535,7 +535,7 @@ npm run generate-og
 Internally runs `node scripts/generate-og-images.js` which:
 1. Reads `data/trips/index.json` to get all trip paths.
 2. Computes distance and duration using the same logic as `GeoUtils`.
-3. Renders a self-contained HTML template (dark background, green accent, trip stats chips, motorcycle SVG) in a Puppeteer headless browser at 1200×630 px.
+3. Renders a self-contained HTML template (dark background, green accent, trip stats chips, `assets/moto.png` embedded as base64 data URI) in a Puppeteer headless browser at 1200×630 px.
 4. Screenshots each page and saves the PNG to `assets/og/<tripId>.png`.
 5. Also generates `assets/og/default.png` for the homepage fallback.
 

@@ -18,7 +18,7 @@
  * viewport and screenshots it. No server needed — everything is inline.
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
@@ -27,7 +27,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '..');
 const OUT_DIR   = resolve(ROOT, 'assets', 'og');
 
+// Load moto.png as base64 data URI so it renders inline in Puppeteer HTML
+const motoPngPath = resolve(ROOT, 'assets', 'moto.png');
+const motoPngB64  = readFileSync(motoPngPath).toString('base64');
+const motoPngDataUri = `data:image/png;base64,${motoPngB64}`;
+
 mkdirSync(OUT_DIR, { recursive: true });
+
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -86,7 +92,7 @@ function formatDate(dateStr) {
  * Font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
  * (identical to the app's font-family in style.css)
  */
-function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) {
+function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, motoPngUri }) {
   const safeTitle    = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const titleSize    = safeTitle.length > 40 ? '52px' : safeTitle.length > 28 ? '60px' : '68px';
 
@@ -126,23 +132,26 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
   .card {
     width: 1200px;
     height: 630px;
+    /* Layer 1: dark background */
     background: #121814;
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 64px 80px;
+    /* Text/content pinned to the bottom */
+    justify-content: flex-end;
+    padding: 56px 80px;
     overflow: hidden;
   }
-  /* top accent bar */
+  /* top accent bar — sits above moto image (z-index via stacking context) */
   .card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 6px;
     background: linear-gradient(90deg, #22c55e 0%, #16a34a 60%, #15803d 100%);
+    z-index: 3;
   }
-  /* faint road stripe pattern bottom-right */
+  /* faint radial glow bottom-right — above moto, below text */
   .card::after {
     content: '';
     position: absolute;
@@ -150,6 +159,26 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
     width: 520px; height: 520px;
     border-radius: 50%;
     background: radial-gradient(circle at center, rgba(34,197,94,0.07) 0%, transparent 70%);
+    z-index: 2;
+  }
+  /* Layer 2: moto image — sits directly on the background, below all text */
+  .moto-icon {
+    position: absolute;
+    /* Span most of the card height, anchored bottom-right */
+    bottom: 0;
+    right: 40px;
+    width: 560px;
+    height: auto;
+    opacity: 0.60;
+    z-index: 1;
+    /* White glow */
+    filter: drop-shadow(0 0 18px rgba(255,255,255,0.55))
+            drop-shadow(0 0 48px rgba(255,255,255,0.25));
+  }
+  /* Layer 3+: all text content is in .content — above the moto image */
+  .content {
+    position: relative;
+    z-index: 3;
   }
   .tag {
     font-size: 13px;
@@ -165,7 +194,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
     line-height: 1.1;
     color: #f9fafb;
     margin-bottom: 36px;
-    max-width: 900px;
+    max-width: 800px;
     word-break: break-word;
   }
   .subtitle {
@@ -204,7 +233,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
   }
   .branding {
     position: absolute;
-    bottom: 36px;
+    top: 36px;
     right: 80px;
     display: flex;
     align-items: center;
@@ -213,6 +242,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
     font-size: 18px;
     font-weight: 600;
     letter-spacing: 0.04em;
+    z-index: 3;
   }
   .branding-dot {
     width: 10px; height: 10px;
@@ -220,45 +250,27 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault }) 
     background: #22c55e;
     opacity: 0.7;
   }
-  /* moto icon top-right */
-  .moto-icon {
-    position: absolute;
-    top: 48px;
-    right: 80px;
-    opacity: 0.18;
-  }
 </style>
 </head>
 <body>
 <div class="card">
-  <!-- Motorcycle silhouette SVG -->
-  <svg class="moto-icon" width="180" height="100" viewBox="0 0 200 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- rear wheel -->
-    <circle cx="42" cy="82" r="26" stroke="#22c55e" stroke-width="8" fill="none"/>
-    <!-- front wheel -->
-    <circle cx="158" cy="82" r="26" stroke="#22c55e" stroke-width="8" fill="none"/>
-    <!-- body frame -->
-    <path d="M42 82 L72 38 L118 34 L158 82" stroke="#22c55e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <!-- seat / tank -->
-    <path d="M72 38 L100 28 L130 32 L118 34" stroke="#22c55e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <!-- handlebar -->
-    <path d="M148 38 L158 30 M148 38 L158 46" stroke="#22c55e" stroke-width="5" stroke-linecap="round" fill="none"/>
-    <!-- fork -->
-    <path d="M148 38 L158 82" stroke="#22c55e" stroke-width="5" stroke-linecap="round" fill="none"/>
-    <!-- exhaust -->
-    <path d="M72 65 L42 72" stroke="#22c55e" stroke-width="4" stroke-linecap="round" fill="none"/>
-    <!-- rider helmet suggestion -->
-    <circle cx="108" cy="22" r="10" stroke="#22c55e" stroke-width="5" fill="none"/>
-  </svg>
+  <!-- Layer 1: background (handled by .card CSS) -->
 
-  <div class="tag">Moto Map · Ride</div>
-  <h1>${safeTitle}</h1>
-  ${subtitle}
-  ${stats}
+  <!-- Layer 2: moto PNG — behind all content -->
+  <img class="moto-icon" src="${motoPngUri}" alt="" />
 
+  <!-- Layer 3: branding top-right -->
   <div class="branding">
     <div class="branding-dot"></div>
     moto-map
+  </div>
+
+  <!-- Layer 3: main text content — pinned to bottom -->
+  <div class="content">
+    <div class="tag">Moto Map · Ride</div>
+    <h1>${safeTitle}</h1>
+    ${subtitle}
+    ${stats}
   </div>
 </div>
 </body>
@@ -296,9 +308,10 @@ async function main() {
       durationFmt: formatDuration(trip),
       dateFmt:     formatDate(trip.date),
       isSiteDefault: false,
+      motoPngUri:  motoPngDataUri,
     });
 
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    await page.setContent(html, { waitUntil: 'load' });
     const outPath = resolve(OUT_DIR, `${trip.id}.png`);
     await page.screenshot({ path: outPath, type: 'png' });
     console.log(`  ✓  ${trip.id}.png`);
@@ -308,8 +321,9 @@ async function main() {
   const defaultHtml = buildHtml({
     title:         'Moto Map',
     isSiteDefault: true,
+    motoPngUri:    motoPngDataUri,
   });
-  await page.setContent(defaultHtml, { waitUntil: 'domcontentloaded' });
+  await page.setContent(defaultHtml, { waitUntil: 'load' });
   const defaultPath = resolve(OUT_DIR, 'default.png');
   await page.screenshot({ path: defaultPath, type: 'png' });
   console.log('  ✓  default.png');
