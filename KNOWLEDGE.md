@@ -526,6 +526,16 @@ The page `<title>` change also means the browser tab and bookmarks show the trip
 
 **OG images (`assets/og/`)** — pre-generated 1200×630 PNG files, one per trip plus `default.png`.
 
+**Per-trip static HTML snapshots (`trip/<tripId>/index.html`)** — the core fix for Telegram / Teams / Discord previews.
+
+Messaging app crawlers **do not execute JavaScript**. When a user shares `https://example.com/?trip=trip_05-07-26`, the crawler fetches the root `index.html` and only sees the default `og:image` and title — it never sees the trip-specific metadata set by `OgMetaManager`.
+
+The solution is a per-trip static HTML page at `trip/<tripId>/index.html`. This file:
+1. Contains the correct OG meta tags (absolute image URL, trip title, stats description) baked in at generation time.
+2. Immediately redirects real users to the live app at `/?trip=<tripId>` via `<meta http-equiv="refresh">` and `window.location.replace()`.
+
+**Usage:** Share links as `https://your-domain.com/trip/trip_05-07-26/` — this URL serves the static snapshot, so crawlers get the rich preview and users are transparently redirected to the map.
+
 ### Generating OG images
 
 ```bash
@@ -538,8 +548,14 @@ Internally runs `node scripts/generate-og-images.js` which:
 3. Renders a self-contained HTML template (dark background, green accent, trip stats chips, `assets/moto.png` embedded as base64 data URI) in a Puppeteer headless browser at 1200×630 px.
 4. Screenshots each page and saves the PNG to `assets/og/<tripId>.png`.
 5. Also generates `assets/og/default.png` for the homepage fallback.
+6. Writes per-trip static HTML snapshot pages to `trip/<tripId>/index.html` — each with correct OG meta tags pre-baked and an immediate redirect to `/?trip=<tripId>`.
 
 **Re-run whenever a new trip JSON is added.**
+
+The `SITE_URL` environment variable controls the absolute base URL used in OG image links and snapshot redirects. Default: `https://sliepchenko.github.io/moto-map`. Override with:
+```bash
+SITE_URL=https://your-domain.com npm run generate-og
+```
 
 ### Why pre-generated PNGs?
 

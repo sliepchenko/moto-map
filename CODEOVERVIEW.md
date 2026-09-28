@@ -65,8 +65,11 @@ data/
 assets/icons/                                — SVG icons for nearby places (all 36×36, colored-circle style)
 assets/og/                                   — pre-generated 1200×630 PNG OG images (one per trip + default.png)
 
+trip/
+  <tripId>/index.html                        — per-trip static HTML snapshots; correct OG meta pre-baked + instant redirect to /?trip=<tripId>; used by crawlers (Telegram, Teams, Discord) that don't execute JS
+
 scripts/
-  generate-og-images.js                      — Node script: renders OG PNGs via Puppeteer; uses assets/moto.png (base64 embedded) for the moto icon; run with `npm run generate-og`
+  generate-og-images.js                      — Node script: renders OG PNGs via Puppeteer; also writes trip/<tripId>/index.html snapshots; uses assets/moto.png (base64 embedded); run with `npm run generate-og`; SITE_URL env var sets the absolute base URL (default: https://sliepchenko.github.io/moto-map)
 ```
 
 ---
@@ -636,6 +639,7 @@ Paths relative to `data/`. No JS changes needed to add a trip — just add file 
 8. **Service worker** — `sw.js` must be updated when new asset paths are added.
 9. **SVG icon design rule** — all icons must use pure vector shapes (no `<text>` or emoji characters). SVG text with emoji fails when loaded as marker `url` in Google Maps (no font access in image context).
 10. **`NearbyPlacesRenderer` icon fallback** uses `assets/icons/viewpoint.svg` for unknown category IDs.
+11. **OG previews in Telegram/Teams/Discord** — crawlers don't execute JS, so `OgMetaManager` updates are invisible to them. The fix is per-trip static HTML snapshots at `trip/<tripId>/index.html`. Share links as `https://your-domain.com/trip/<tripId>/` — crawlers get baked OG tags; real users are immediately redirected to `/?trip=<tripId>`. Run `npm run generate-og` whenever new trips are added.
 
 ---
 

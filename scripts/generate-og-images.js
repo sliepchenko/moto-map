@@ -18,21 +18,23 @@
  * viewport and screenshots it. No server needed — everything is inline.
  */
 
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT      = resolve(__dirname, '..');
-const OUT_DIR   = resolve(ROOT, 'assets', 'og');
+const __dirname   = dirname(fileURLToPath(import.meta.url));
+const ROOT        = resolve(__dirname, '..');
+const OUT_DIR     = resolve(ROOT, 'assets', 'og');
+const TRIP_DIR    = resolve(ROOT, 'trip');   // per-trip static HTML snapshots
 
 // Load moto.png as base64 data URI so it renders inline in Puppeteer HTML
 const motoPngPath = resolve(ROOT, 'assets', 'moto.png');
 const motoPngB64  = readFileSync(motoPngPath).toString('base64');
 const motoPngDataUri = `data:image/png;base64,${motoPngB64}`;
 
-mkdirSync(OUT_DIR, { recursive: true });
+mkdirSync(OUT_DIR,  { recursive: true });
+mkdirSync(TRIP_DIR, { recursive: true });
 
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -277,9 +279,84 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
 </html>`;
 }
 
+// ── Static HTML snapshot template ─────────────────────────────────────────────
+
+/**
+ * Builds a tiny static HTML page for a specific trip.
+ *
+ * This page is placed at  trip/<tripId>/index.html  and serves two purposes:
+ *
+ *  1. **Crawlers (Telegram, Teams, Discord, Twitter/X)** — they fetch the URL
+ *     without executing JavaScript.  They read the <meta> OG tags baked into
+ *     this file and render the rich preview card with the correct image, title
+ *     and description.
+ *
+ *  2. **Real users** — the page immediately redirects them (via both
+ *     <meta http-equiv="refresh"> and a JS window.location replacement) to the
+ *     real app at  /?trip=<tripId>  so they land on the live interactive map.
+ *
+ * The `og:image` URL must be **absolute** — relative paths are not accepted by
+ * most crawlers.  Callers should pass the full origin
+ * (e.g. "https://moto-map.app") via the `baseUrl` parameter.
+ *
+ * @param {{
+ *   tripId:       string,
+ *   title:        string,
+ *   description:  string,   // e.g. "158.4 km · 3 h 10 min · 16 Aug 2026"
+ *   baseUrl:      string,   // origin without trailing slash, read from a config or env
+ * }} opts
+ */
+function buildTripSnapshotHtml({ tripId, title, description, baseUrl }) {
+  const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeDesc  = description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const appUrl    = `${baseUrl}/?trip=${tripId}`;
+  const imageUrl  = `${baseUrl}/assets/og/${tripId}.png`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${safeTitle} — Moto Map</title>
+
+  <!-- Instant redirect for real users (JS + meta fallback) -->
+  <meta http-equiv="refresh" content="0; url=${appUrl}" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"         content="website" />
+  <meta property="og:site_name"    content="Moto Map" />
+  <meta property="og:url"          content="${appUrl}" />
+  <meta property="og:title"        content="${safeTitle}" />
+  <meta property="og:description"  content="${safeDesc}" />
+  <meta property="og:image"        content="${imageUrl}" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDesc}" />
+  <meta name="twitter:image"       content="${imageUrl}" />
+
+  <!-- Standard description -->
+  <meta name="description" content="${safeDesc}" />
+</head>
+<body>
+  <p>Redirecting to <a href="${appUrl}">Moto Map — ${safeTitle}</a>…</p>
+  <script>window.location.replace("${appUrl}");</script>
+</body>
+</html>`;
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  // Base URL for absolute og:image links.
+  // Set SITE_URL env var on your CI/CD, or update the fallback below.
+  // Example: SITE_URL=https://moto-map.app npm run generate-og
+  const baseUrl = (process.env.SITE_URL ?? 'https://sliepchenko.github.io/moto-map')
+    .replace(/\/$/, '');
+
   const manifest  = JSON.parse(readFileSync(resolve(ROOT, 'data', 'trips', 'index.json'), 'utf8'));
   const tripFiles = manifest.trips ?? [];
 
@@ -299,14 +376,20 @@ async function main() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
 
-  // Generate per-trip images
+  // Generate per-trip images + static HTML snapshots
   for (const trip of trips) {
-    const km       = distanceKm(trip);
-    const html     = buildHtml({
+    const km          = distanceKm(trip);
+    const distanceFmt = km.toFixed(1) + ' km';
+    const durationFmt = formatDuration(trip);
+    const dateFmt     = formatDate(trip.date);
+    const description = `${distanceFmt} · ${durationFmt} · ${dateFmt}`;
+
+    // 1. OG image PNG
+    const html = buildHtml({
       title:       trip.title ?? trip.id,
-      distanceFmt: km.toFixed(1) + ' km',
-      durationFmt: formatDuration(trip),
-      dateFmt:     formatDate(trip.date),
+      distanceFmt,
+      durationFmt,
+      dateFmt,
       isSiteDefault: false,
       motoPngUri:  motoPngDataUri,
     });
@@ -314,7 +397,19 @@ async function main() {
     await page.setContent(html, { waitUntil: 'load' });
     const outPath = resolve(OUT_DIR, `${trip.id}.png`);
     await page.screenshot({ path: outPath, type: 'png' });
-    console.log(`  ✓  ${trip.id}.png`);
+    console.log(`  ✓  assets/og/${trip.id}.png`);
+
+    // 2. Static HTML snapshot (for crawlers that don't execute JS)
+    const snapshotDir  = resolve(TRIP_DIR, trip.id);
+    mkdirSync(snapshotDir, { recursive: true });
+    const snapshotHtml = buildTripSnapshotHtml({
+      tripId:      trip.id,
+      title:       trip.title ?? trip.id,
+      description,
+      baseUrl,
+    });
+    writeFileSync(resolve(snapshotDir, 'index.html'), snapshotHtml, 'utf8');
+    console.log(`  ✓  trip/${trip.id}/index.html`);
   }
 
   // Generate site default image
@@ -326,10 +421,11 @@ async function main() {
   await page.setContent(defaultHtml, { waitUntil: 'load' });
   const defaultPath = resolve(OUT_DIR, 'default.png');
   await page.screenshot({ path: defaultPath, type: 'png' });
-  console.log('  ✓  default.png');
+  console.log('  ✓  assets/og/default.png');
 
   await browser.close();
-  console.log(`\nDone — ${trips.length + 1} images written to assets/og/`);
+  console.log(`\nDone — ${trips.length + 1} OG images + ${trips.length} HTML snapshots`);
+  console.log(`Share trip links as:  ${baseUrl}/trip/<tripId>/`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
