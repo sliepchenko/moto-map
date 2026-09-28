@@ -21,8 +21,9 @@
 12. [Nearby Places & Fuel Stations](#nearby-places--fuel-stations)
 13. [Settings System](#settings-system)
 14. [Versioning System](#versioning-system)
-15. [Data Formats](#data-formats)
-16. [Known Limitations & Caveats](#known-limitations--caveats)
+15. [Social Link Previews (Open Graph)](#social-link-previews-open-graph)
+16. [Data Formats](#data-formats)
+17. [Known Limitations & Caveats](#known-limitations--caveats)
 
 ---
 
@@ -73,16 +74,20 @@ moto-map/
 ├── theme.json                       # Google Maps light style (grayscale + blue water)
 ├── dark-theme.json                  # Google Maps dark style
 ├── sw.js                            # Service Worker for offline/caching
+├── package.json                     # devDependencies: puppeteer; scripts: generate-og
 ├── README.md
 ├── ROADMAP.md
 ├── KNOWLEDGE.md
 ├── AGENTS.md
 ├── assets/
+│   ├── og/                          # Pre-generated 1200×630 OG preview PNGs (one per trip + default.png)
 │   └── icons/                       # SVG icons: colored-circle style, 36×36, all 10 nearby-place categories
 ├── data/
 │   └── trips/
 │       ├── index.json               # Trip manifest
 │       └── trip_*.json              # Individual trips
+├── scripts/
+│   └── generate-og-images.js        # Node/Puppeteer script: generates assets/og/*.png
 └── src/
     ├── components/
     │   ├── AppSidebarComponent.js   # <app-sidebar> — sidebar shell with accordion
@@ -104,6 +109,8 @@ moto-map/
     │   ├── RouteRenderer.js         # Draws planned route + alternatives
     │   ├── FuelStationRenderer.js   # Finds/draws fuel stations along route
     │   └── NearbyPlacesRenderer.js  # Finds/draws tourist places along route
+    ├── og/
+    │   └── OgMetaManager.js         # Updates <title> + OG/Twitter Card meta tags for trip previews
     ├── state/
     │   └── UrlStateManager.js       # Manages ?trip= URL param
     └── version.js                   # APP_VERSION_DATE — updated by agent after each task
@@ -493,6 +500,58 @@ export const APP_VERSION_DATE = '2026-04-28T09:14:52Z';
 ```
 
 No build step or semver is needed — the datetime alone is sufficient for a personal static project.
+
+---
+
+## Social Link Previews (Open Graph)
+
+When a user shares a trip link (e.g. `https://moto-map.app/?trip=trip_05-07-26`) in Telegram, Discord,
+Slack, Twitter/X, or iMessage, the messaging app fetches the URL and reads the `<meta>` tags in `<head>`
+to render a rich preview card — showing an image, title, and description.
+
+### Implementation
+
+**Static meta tags in `index.html`** provide fallback values for the site homepage. These are always
+present in the raw HTML so crawlers that don't execute JavaScript can read them.
+
+**Dynamic updates in `main.js`** via `OgMetaManager` (`src/og/OgMetaManager.js`) — whenever the user
+selects a trip, the following are updated in the live DOM:
+- `document.title` → trip name (e.g. "From Camp Bohinj back")
+- `og:title` / `twitter:title` → trip name
+- `og:description` / `twitter:description` → "383.5 km · 7 h 40 min · 5 Jul 2026"
+- `og:image` / `twitter:image` → `/assets/og/<tripId>.png`
+- `og:url` → current `window.location.href` (includes `?trip=` param)
+
+The page `<title>` change also means the browser tab and bookmarks show the trip name, not just "Moto Map".
+
+**OG images (`assets/og/`)** — pre-generated 1200×630 PNG files, one per trip plus `default.png`.
+
+### Generating OG images
+
+```bash
+npm run generate-og
+```
+
+Internally runs `node scripts/generate-og-images.js` which:
+1. Reads `data/trips/index.json` to get all trip paths.
+2. Computes distance and duration using the same logic as `GeoUtils`.
+3. Renders a self-contained HTML template (dark background, green accent, trip stats chips, motorcycle SVG) in a Puppeteer headless browser at 1200×630 px.
+4. Screenshots each page and saves the PNG to `assets/og/<tripId>.png`.
+5. Also generates `assets/og/default.png` for the homepage fallback.
+
+**Re-run whenever a new trip JSON is added.**
+
+### Why pre-generated PNGs?
+
+Telegram, Twitter/X, and most crawlers require `og:image` to return a real image (`Content-Type: image/*`).
+They do not execute JavaScript and do not render HTML pages as images. A dynamically generated canvas
+in the browser would only be visible in the live app, not in previews. Pre-generating static PNGs is
+the correct approach for a no-backend static site.
+
+### Font
+
+The OG images use `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` — the same stack
+as `style.css` — rendered by the system font inside the headless Chromium instance that Puppeteer uses.
 
 ---
 

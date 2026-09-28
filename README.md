@@ -22,9 +22,7 @@ A fully static website that visualizes personal motorcycle trips on an interacti
 
 ## Project Status
 
-**Current phase: OOP / SOLID / WebComponents refactor — complete.**
-
-The codebase was fully rewritten from a flat-function style to a class-based, SOLID-documented, Web Component-driven architecture. All features below are implemented and working.
+**Current phase: Feature-complete personal motorcycle map.**
 
 | Area | Status |
 |---|---|
@@ -32,12 +30,16 @@ The codebase was fully rewritten from a flat-function style to a class-based, SO
 | Road-following trip polylines via Directions API | Done |
 | Automatic trip color gradient by date | Done |
 | Waypoint markers with InfoWindows | Done |
-| Points of Interest with custom SVG icons | Done |
+| Route Planner — multi-stop, avoid options, alternatives | Done |
+| Fuel station finder along route | Done |
+| Nearby POIs along route (10 categories, custom SVG icons) | Done |
 | Collapsible sidebar with accordion sections | Done |
 | Trip selection, highlight, deselect | Done |
-| Deep linking via `?trip=` / `?poi=` URL params | Done |
+| Deep linking via `?trip=` URL param | Done |
 | Browser back/forward navigation | Done |
 | Responsive bottom-sheet layout (mobile) | Done |
+| Dark map / terrain / route-arrow toggles | Done |
+| Social link previews (OG / Twitter Card) with per-trip images | Done |
 
 ---
 
@@ -445,6 +447,7 @@ Open `http://localhost:8080` in the browser.
 2. Add `waypoints` with the named stops (start, intermediate, end).
 3. Add the relative path to `data/trips/index.json`.
 4. Refresh the browser — the trip appears and the color gradient updates automatically.
+5. Re-generate OG preview images: `npm run generate-og`
 
 The Directions API will resolve the road-following route from the waypoints. No dense coordinate array is needed.
 
@@ -490,4 +493,4 @@ This is a personal project. To fork it for your own trips, replace everything in
 
 ---
 
-*Last updated: March 2026*
+*Last updated: September 2026*

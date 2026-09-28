@@ -19,13 +19,14 @@
 ## File map
 
 ```
-index.html                          31 lines — minimal PWA shell
-main.js                            ~560 lines — App class; entry point
+index.html                          48 lines — minimal PWA shell + static OG/Twitter Card meta tags
+main.js                            ~620 lines — App class; entry point
 style.css                                    — global CSS (sidebar, accordion, responsive)
 theme.json                                   — Google Maps light style
 dark-theme.json                              — Google Maps dark style
 sw.js                                        — Service Worker
 src/version.js                      10 lines — APP_VERSION_DATE (UTC ISO string)
+package.json                                 — devDependencies: puppeteer; scripts: generate-og
 
 src/core/
   EventEmitter.js                   60 lines — pub/sub base class
@@ -34,6 +35,9 @@ src/core/
 
 src/data/
   TripRepository.js                 49 lines — fetches trips manifest + files
+
+src/og/
+  OgMetaManager.js                  ~90 lines — updates <title> + OG/Twitter Card meta tags in <head>
 
 src/state/
   UrlStateManager.js                45 lines — ?trip= URL param
@@ -59,6 +63,10 @@ data/
   trips/trip_*.json                          — individual trip files
 
 assets/icons/                                — SVG icons for nearby places (all 36×36, colored-circle style)
+assets/og/                                   — pre-generated 1200×630 PNG OG images (one per trip + default.png)
+
+scripts/
+  generate-og-images.js                      — Node script: renders OG PNGs via Puppeteer; run with `npm run generate-og`
 ```
 
 ---
@@ -76,6 +84,7 @@ assets/icons/                                — SVG icons for nearby places (al
 | `FuelStationRenderer` | `src/map/FuelStationRenderer.js` | — |
 | `NearbyPlacesRenderer` | `src/map/NearbyPlacesRenderer.js` | — |
 | `TripRepository` | `src/data/TripRepository.js` | — |
+| `OgMetaManager` | `src/og/OgMetaManager.js` | — |
 | `UrlStateManager` | `src/state/UrlStateManager.js` | — |
 | `AppSidebarComponent` | `src/components/AppSidebarComponent.js` | `HTMLElement` |
 | `TripListComponent` | `src/components/TripListComponent.js` | `HTMLElement` |
@@ -348,6 +357,27 @@ async fetchAll() → Object[]            // sorted ascending by date
 constructor(basePath = 'data')
 async fetchAll() → Object[]            // returns [] on any error; reads data.pois array
 ```
+
+---
+
+## OgMetaManager (src/og/OgMetaManager.js:~90)
+
+```js
+constructor(baseUrl = window.location.origin)
+updateForTrip(trip, distanceFormatted, durationFormatted)   // sets <title>, og:*, twitter:*
+reset()                                                      // restores site-level defaults
+```
+
+- Called from `App.#applyTrip()` whenever a trip is selected or deselected.
+- Also called from `trip-distance` event handler so OG tags refresh after accurate road distance is available.
+- `og:image` → `/assets/og/<tripId>.png` (pre-generated 1200×630 PNG).
+- `og:title` → trip title (e.g. "From Camp Bohinj back").
+- `og:description` → "383.5 km · 7 h 40 min · 5 Jul 2026".
+
+**Pre-generation script:** `scripts/generate-og-images.js`
+- Reads `data/trips/index.json`, renders each trip via Puppeteer (headless Chromium), saves PNG to `assets/og/`.
+- Run: `npm run generate-og` (requires `npm install --save-dev puppeteer` once).
+- Re-run whenever a new trip JSON is added.
 
 ---
 

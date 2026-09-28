@@ -14,6 +14,8 @@
 import { MapController }        from './src/map/MapController.js';
 import { UrlStateManager }      from './src/state/UrlStateManager.js';
 import { PLACE_CATEGORIES }     from './src/map/NearbyPlacesRenderer.js';
+import { OgMetaManager }        from './src/og/OgMetaManager.js';
+import { estimateTripDistance, estimateTripDuration } from './src/core/GeoUtils.js';
 
 // Register WebComponents before the DOM parser encounters their tags.
 import './src/components/TripListComponent.js';
@@ -32,6 +34,7 @@ class App {
   /** @type {MapController} */         #map;
   /** @type {AppSidebarComponent} */   #sidebar;
   /** @type {UrlStateManager} */       #urlState;
+  /** @type {OgMetaManager} */         #ogMeta;
 
   /**
    * All route summaries from the last successful `renderPlannedRoute()` call.
@@ -57,6 +60,7 @@ class App {
   constructor() {
     this.#urlState  = new UrlStateManager();
     this.#sidebar   = document.querySelector('app-sidebar');
+    this.#ogMeta    = new OgMetaManager();
     this.#map       = new MapController(
       GOOGLE_MAPS_API_KEY,
       document.getElementById('map'),
@@ -75,6 +79,18 @@ class App {
     // this event fires once per trip after the route path has been resolved.
     this.#map.on('trip-distance', ({ tripId, km }) => {
       this.#sidebar.tripList?.updateTripDistance(tripId, km);
+
+      // If this is the currently selected trip, refresh the OG meta tags with
+      // the accurate road distance now that the Directions API has responded.
+      const urlTripId = this.#urlState.getTripId();
+      if (tripId === urlTripId) {
+        const trip = this.#map.trips?.find(t => t.id === tripId);
+        if (trip) {
+          const distanceFmt = km.toFixed(1) + ' km';
+          const durationFmt = estimateTripDuration(trip);
+          this.#ogMeta.updateForTrip(trip, distanceFmt, durationFmt);
+        }
+      }
     });
 
     // Wire browser back/forward
@@ -265,11 +281,24 @@ class App {
 
   /**
    * Selects a trip on the map and updates the sidebar highlight.
+   * Also updates the page title and Open Graph meta tags for link previews.
    * @param {string|null} id
    */
   #applyTrip(id) {
     this.#map.selectTrip(id ?? null);
     this.#sidebar.tripList.setActive(id ?? null);
+
+    if (id) {
+      const trip = this.#map.trips?.find(t => t.id === id);
+      if (trip) {
+        const distanceKm  = estimateTripDistance(trip);
+        const distanceFmt = distanceKm.toFixed(1) + ' km';
+        const durationFmt = estimateTripDuration(trip);
+        this.#ogMeta.updateForTrip(trip, distanceFmt, durationFmt);
+      }
+    } else {
+      this.#ogMeta.reset();
+    }
   }
 
   // ── route planner handlers ─────────────────────────────────────────────────
