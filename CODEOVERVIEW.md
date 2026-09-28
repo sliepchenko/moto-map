@@ -384,15 +384,23 @@ reset()                                                      // restores site-le
 
 ---
 
-## UrlStateManager (src/state/UrlStateManager.js:45)
+## UrlStateManager (src/state/UrlStateManager.js:~95)
 
-Stateless — reads from `window.location` on every call.
+Reads from `window.location` on every call.
 
 ```js
-getTripId() → string|null
-pushTrip(id: string|null)             // sets ?trip=
+getTripId() → string|null             // reads /trip/<id>/ path OR ?trip= query (fallback)
+pushTrip(id: string|null)             // pushes …/trip/<id>/ (canonical share URL) or app root
+replaceWithTrip(id: string)           // replaceState to …/trip/<id>/ (no extra history entry)
 onNavigate(handler) → () => void      // listens popstate; handler({ tripId })
+#basePath() → string                  // derives app root from current pathname
 ```
+
+**URL strategy:** Trip URLs use path format `…/trip/<tripId>/` so that Telegram/Teams/Discord
+crawlers fetch `trip/<tripId>/index.html` (the static snapshot with baked OG tags). The snapshot
+redirects real users to `/?trip=<tripId>` via `<meta http-equiv="refresh">` + JS. The app then
+detects the `?trip=` param on load and calls `replaceWithTrip()` to clean up the address bar
+to the canonical `/trip/<tripId>/` form — no infinite loop (replaceState does not navigate).
 
 ---
 
@@ -639,7 +647,7 @@ Paths relative to `data/`. No JS changes needed to add a trip — just add file 
 8. **Service worker** — `sw.js` must be updated when new asset paths are added.
 9. **SVG icon design rule** — all icons must use pure vector shapes (no `<text>` or emoji characters). SVG text with emoji fails when loaded as marker `url` in Google Maps (no font access in image context).
 10. **`NearbyPlacesRenderer` icon fallback** uses `assets/icons/viewpoint.svg` for unknown category IDs.
-11. **OG previews in Telegram/Teams/Discord** — crawlers don't execute JS, so `OgMetaManager` updates are invisible to them. The fix is per-trip static HTML snapshots at `trip/<tripId>/index.html`. Share links as `https://your-domain.com/trip/<tripId>/` — crawlers get baked OG tags; real users are immediately redirected to `/?trip=<tripId>`. Run `npm run generate-og` whenever new trips are added.
+11. **OG previews in Telegram/Teams/Discord** — crawlers don't execute JS, so `OgMetaManager` updates are invisible to them. The fix is per-trip static HTML snapshots at `trip/<tripId>/index.html`. The app uses **path-based URLs** (`…/trip/<tripId>/`) so that the address bar URL users copy is directly the snapshot URL. The snapshot redirects real users to `/?trip=<tripId>`; on load the app detects the query param and replaces the URL back to the canonical path form. Run `npm run generate-og` whenever new trips are added.
 
 ---
 

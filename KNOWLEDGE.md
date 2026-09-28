@@ -47,7 +47,7 @@ Browser
 │    │    ├── RoutePlannerComponent — <route-planner>
 │    │    ├── AppSettingsComponent  — <app-settings>
 │    │    └── NearbyPlacesPanel    — nearby places list
-│    └── UrlStateManager     — reads/writes ?trip= URL param
+│    └── UrlStateManager     — reads/writes trip URL (/trip/<id>/ path)
 │
 ├── data/
 │    ├── trips/index.json    — trip manifest (list of file paths)
@@ -112,7 +112,7 @@ moto-map/
     ├── og/
     │   └── OgMetaManager.js         # Updates <title> + OG/Twitter Card meta tags for trip previews
     ├── state/
-    │   └── UrlStateManager.js       # Manages ?trip= URL param
+    │   └── UrlStateManager.js       # Manages trip URL state (/trip/<id>/ path-based)
     └── version.js                   # APP_VERSION_DATE — updated by agent after each task
 ```
 
@@ -285,7 +285,7 @@ There is no Vuex/Redux/MobX state store. State is distributed:
 |---|---|---|
 | Active trip ID | `MapController.#activeId` | `selectTrip(id)` |
 | Trip list highlight | `TripListComponent` | `setActive(id)` |
-| URL `?trip=` | Browser URL | `UrlStateManager.pushTrip()` |
+| Active trip URL | Browser address bar | `UrlStateManager.pushTrip()` (path: `…/trip/<id>/`) |
 | Settings (persist) | `localStorage` (via AppSettingsComponent) | `setting-change` event |
 | Last route summaries | `App.#lastRouteSummaries` | After each `renderPlannedRoute()` |
 | Last route path | `App.#lastRoutePath` | After each `renderPlannedRoute()` |
@@ -520,9 +520,19 @@ selects a trip, the following are updated in the live DOM:
 - `og:title` / `twitter:title` → trip name
 - `og:description` / `twitter:description` → "383.5 km · 7 h 40 min · 5 Jul 2026"
 - `og:image` / `twitter:image` → `/assets/og/<tripId>.png`
-- `og:url` → current `window.location.href` (includes `?trip=` param)
+- `og:url` → current `window.location.href` (includes `trip/<tripId>/` path)
 
 The page `<title>` change also means the browser tab and bookmarks show the trip name, not just "Moto Map".
+
+**URL strategy for social sharing:** When a trip is selected, `UrlStateManager.pushTrip()` updates
+the address bar to `…/trip/<tripId>/` (path-based). This means if a user copies the URL from the
+address bar and pastes it into Telegram/Teams/Discord, the crawler fetches
+`trip/<tripId>/index.html` — the static snapshot with baked OG meta — and renders the correct
+image + title preview. Real users who click the link land on the snapshot page, which immediately
+redirects them to `/?trip=<tripId>` via `<meta http-equiv="refresh">` and `window.location.replace`.
+On arrival at `/?trip=<tripId>`, the app detects the query param and calls
+`UrlStateManager.replaceWithTrip()` to clean up the address bar to the canonical path form (no new
+history entry, no infinite loop).
 
 **OG images (`assets/og/`)** — pre-generated 1200×630 PNG files, one per trip plus `default.png`.
 
@@ -534,7 +544,10 @@ The solution is a per-trip static HTML page at `trip/<tripId>/index.html`. This 
 1. Contains the correct OG meta tags (absolute image URL, trip title, stats description) baked in at generation time.
 2. Immediately redirects real users to the live app at `/?trip=<tripId>` via `<meta http-equiv="refresh">` and `window.location.replace()`.
 
-**Usage:** Share links as `https://your-domain.com/trip/trip_05-07-26/` — this URL serves the static snapshot, so crawlers get the rich preview and users are transparently redirected to the map.
+**Usage:** When a user selects a trip in the app, the address bar automatically changes to
+`https://your-domain.com/trip/trip_05-07-26/`. Pasting this URL into Telegram/Teams/Discord
+causes the crawler to fetch the static snapshot, which has the correct OG image and metadata.
+Clicking the link in the chat redirects to the live map.
 
 ### Generating OG images
 

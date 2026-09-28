@@ -255,11 +255,20 @@ class App {
     this.#map.setTripLayersVisibility(showTrips);
     this.#map.setPlannedRouteVisibility(showPlanner);
 
-    // Restore URL state on first load
+    // Restore URL state on first load.
     const tripId = this.#urlState.getTripId();
 
     if (tripId) {
       this.#applyTrip(tripId);
+
+      // If the app loaded via a ?trip= query param (the format used by static
+      // snapshot redirects), replace the address-bar URL with the canonical
+      // path-based form  …/trip/<id>/  so that users who copy the URL from the
+      // address bar get the shareable snapshot URL, not the ?trip= form.
+      const arrivedViaQuery = new URLSearchParams(window.location.search).get('trip');
+      if (arrivedViaQuery) {
+        this.#urlState.replaceWithTrip(tripId);
+      }
     }
   }
 
