@@ -196,7 +196,7 @@ disablePickMode()
 **Hardcoded values:**
 - `ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 }` — default map center
 - `DEFAULT_ZOOM = 12`
-- Trip highlight: selected `strokeWeight:6`; dimmed `strokeOpacity:0.25`
+- Trip highlight (`#applyHighlight`): selected `strokeWeight:6` and temporarily recolored to `SELECTED_TRIP_COLOR` (`#22c55e`, green) — line + non-endpoint waypoint markers; original `trip._color` restored on deselect. Dimmed trips `strokeOpacity:0.15`. Endpoint markers (`ENDPOINT_MARKER_COLOR #166534`) never recolored.
 - Arrow overlay: selected fill `0.9`/stroke `0.35`; dimmed fill `0.2`/stroke `0.1`
 
 ---

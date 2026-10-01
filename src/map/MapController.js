@@ -11,6 +11,11 @@ import { TripRepository }         from '../data/TripRepository.js';
 const ZAGREB_CENTER = { lat: 45.8150, lng: 15.9819 };
 const DEFAULT_ZOOM  = 12;
 
+/** Temporary color applied to the selected trip (restored on deselect). */
+const SELECTED_TRIP_COLOR  = '#22c55e';
+/** Fill color of start/end waypoint markers — never recolored on selection. */
+const ENDPOINT_MARKER_COLOR = '#166534';
+
 /**
  * Orchestrates Google Maps initialisation, data loading, and trip rendering.
  *
@@ -465,10 +470,21 @@ export class MapController extends EventEmitter {
     this.emit('load');
   }
 
-  /** Dims unselected trips; bolds the selected one. */
+  /** Dims unselected trips; bolds the selected one and temporarily recolors it green. */
   #applyHighlight(selectedId) {
-    this.#tripLayers.forEach(({ polyline, basePolyline }, id) => {
+    this.#tripLayers.forEach(({ trip, polyline, basePolyline, markers }, id) => {
       const isSelected  = selectedId === null || id === selectedId;
+      const isFocused   = selectedId !== null && id === selectedId;
+      const baseColor   = trip._color ?? trip.color ?? '#E55D2B';
+      const lineColor   = isFocused ? SELECTED_TRIP_COLOR : baseColor;
+
+      // Intermediate waypoint markers follow the line color (endpoints stay dark green)
+      markers.forEach(m => {
+        const icon = m.getIcon();
+        if (!icon || icon.fillColor === ENDPOINT_MARKER_COLOR) return;
+        m.setIcon({ ...icon, fillColor: lineColor });
+      });
+
       const lineOpacity = isSelected ? 1.0  : 0.15;
       const weight      = isSelected && selectedId !== null ? 6 : 5;
       const scale       = isSelected && selectedId !== null ? 2.5 : 2;
@@ -481,6 +497,7 @@ export class MapController extends EventEmitter {
       // Update the solid base line
       if (basePolyline) {
         basePolyline.setOptions({
+          strokeColor:   lineColor,
           strokeOpacity: lineOpacity,
           strokeWeight:  weight,
         });

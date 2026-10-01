@@ -381,6 +381,7 @@ UrlStateManager  (popstate listener)
 
 - A trip with a `color` field in its JSON skips the palette and uses that color directly.
 - The `_color` property is not persisted — it is recomputed on every load.
+- **Selection recolor:** when a trip is selected, `MapController.#applyHighlight()` temporarily sets its line (and intermediate waypoint markers) to bright green `SELECTED_TRIP_COLOR` (`#22c55e`) while other trips are dimmed to 0.15 opacity. On deselect the color is restored from `trip._color ?? trip.color`. `trip._color` itself is never mutated.
 - To change the palette, edit `RECENCY_PALETTE` in `src/core/ColorUtils.js`.
 
 ---
