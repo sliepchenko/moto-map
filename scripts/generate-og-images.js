@@ -140,7 +140,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     flex-direction: column;
     /* Text/content pinned to the bottom */
     justify-content: flex-end;
-    padding: 56px 180px;
+    padding: 56px 200px;
     overflow: hidden;
   }
   /* top accent bar — sits above moto image (z-index via stacking context) */
