@@ -270,6 +270,10 @@ Map layers are shown/hidden depending on which sidebar tab is open:
 | `planner` | no | yes |
 | `null` (all collapsed) | yes | yes |
 
+**Reset on collapse:** when the `rides` section stops being the active one (collapsed, or another
+tab opened) and a trip is selected, `App.#onSectionChange()` deselects it (`pushTrip(null)` +
+`#applyTrip(null)`), so the map/URL/OG meta return to the no-selection state.
+
 Implementation:
 - `AppSidebarComponent` emits `section-change` on every accordion state change.
 - `App.#onSectionChange()` calls `MapController.setTripLayersVisibility()` and

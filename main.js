@@ -530,7 +530,14 @@ class App {
    * @param {CustomEvent} e — detail: { section: string|null }
    */
   #onSectionChange({ detail: { section } }) {
+    const wasRidesOpen = this.#activeSection === 'rides';
     this.#activeSection = section;
+
+    // Collapsing "My Rides" (or switching to another tab) resets the selected ride.
+    if (wasRidesOpen && section !== 'rides' && this.#urlState.getTripId()) {
+      this.#urlState.pushTrip(null);
+      this.#applyTrip(null);
+    }
 
     const showTrips   = section === 'rides'   || section === null;
     const showPlanner = section === 'planner' || section === null;

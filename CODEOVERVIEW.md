@@ -574,6 +574,7 @@ UrlStateManager popstate
 ```
 AppSidebarComponent → section-change { section }
   → App.#onSectionChange()
+    → if 'rides' was open and is no longer: UrlStateManager.pushTrip(null) + App.#applyTrip(null)  (resets selected ride)
     → MapController.setTripLayersVisibility()
     → MapController.setPlannedRouteVisibility()
 ```
