@@ -7,4 +7,4 @@
  * Format: UTC ISO 8601 datetime string (YYYY-MM-DDTHH:MM:SSZ).
  * The UI converts this to the user's local time before display.
  */
-export const APP_VERSION_DATE = '2026-09-28T19:50:06Z';
+export const APP_VERSION_DATE = '2026-10-01T08:57:50Z';

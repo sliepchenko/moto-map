@@ -89,14 +89,13 @@ function formatDate(dateStr) {
  *  - Motorcycle SVG icon (top-right)
  *  - Large trip title
  *  - Three stat chips: distance · est. time · date
- *  - "Moto Map" branding bottom-right
  *
  * Font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
  * (identical to the app's font-family in style.css)
  */
 function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, motoPngUri }) {
   const safeTitle    = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const titleSize    = safeTitle.length > 40 ? '52px' : safeTitle.length > 28 ? '60px' : '68px';
+  const titleSize    = safeTitle.length > 40 ? '78px' : safeTitle.length > 28 ? '90px' : '102px';
 
   const stats = isSiteDefault ? '' : `
     <div class="chips">
@@ -141,7 +140,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     flex-direction: column;
     /* Text/content pinned to the bottom */
     justify-content: flex-end;
-    padding: 56px 80px;
+    padding: 56px 150px;
     overflow: hidden;
   }
   /* top accent bar — sits above moto image (z-index via stacking context) */
@@ -183,7 +182,7 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     z-index: 3;
   }
   .tag {
-    font-size: 13px;
+    font-size: 19.5px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -196,14 +195,14 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     line-height: 1.1;
     color: #f9fafb;
     margin-bottom: 36px;
-    max-width: 800px;
+    max-width: 900px;
     word-break: break-word;
   }
   .subtitle {
-    font-size: 26px;
+    font-size: 39px;
     color: #9ca3af;
     margin-bottom: 36px;
-    max-width: 800px;
+    max-width: 900px;
     line-height: 1.4;
   }
   .chips {
@@ -222,35 +221,16 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     min-width: 150px;
   }
   .chip-label {
-    font-size: 13px;
+    font-size: 19.5px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #6b7280;
   }
   .chip-value {
-    font-size: 26px;
+    font-size: 39px;
     font-weight: 700;
     color: #f3f4f6;
-  }
-  .branding {
-    position: absolute;
-    top: 36px;
-    right: 80px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #4b5563;
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    z-index: 3;
-  }
-  .branding-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #22c55e;
-    opacity: 0.7;
   }
 </style>
 </head>
@@ -260,12 +240,6 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
 
   <!-- Layer 2: moto PNG — behind all content -->
   <img class="moto-icon" src="${motoPngUri}" alt="" />
-
-  <!-- Layer 3: branding top-right -->
-  <div class="branding">
-    <div class="branding-dot"></div>
-    moto-map
-  </div>
 
   <!-- Layer 3: main text content — pinned to bottom -->
   <div class="content">
@@ -291,9 +265,13 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
  *     this file and render the rich preview card with the correct image, title
  *     and description.
  *
- *  2. **Real users** — the page immediately redirects them (via both
- *     <meta http-equiv="refresh"> and a JS window.location replacement) to the
- *     real app at  /?trip=<tripId>  so they land on the live interactive map.
+ *  2. **Real users** — the page immediately redirects them via a JS
+ *     window.location.replace() to the real app at  /?trip=<tripId>  so they
+ *     land on the live interactive map.  NOTE: <meta http-equiv="refresh"> is
+ *     intentionally NOT used — Telegram's crawler follows instant (delay=0)
+ *     meta-refresh redirects and would land on the SPA root instead of reading
+ *     the OG tags baked into this snapshot.  The JS redirect is sufficient for
+ *     all real browsers; non-JS users see the fallback link in <body>.
  *
  * The `og:image` URL must be **absolute** — relative paths are not accepted by
  * most crawlers.  Callers should pass the full origin
@@ -325,9 +303,6 @@ function buildTripSnapshotHtml({ tripId, title, description, baseUrl }) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${safeTitle} — Moto Map</title>
-
-  <!-- Instant redirect for real users (JS + meta fallback) -->
-  <meta http-equiv="refresh" content="0; url=${appUrl}" />
 
   <!-- Open Graph -->
   <meta property="og:type"         content="website" />

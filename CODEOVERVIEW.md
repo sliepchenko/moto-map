@@ -381,6 +381,7 @@ reset()                                                      // restores site-le
 - Reads `data/trips/index.json`, renders each trip via Puppeteer (headless Chromium), saves PNG to `assets/og/`.
 - Run: `npm run generate-og` (requires `npm install --save-dev puppeteer` once).
 - Re-run whenever a new trip JSON is added.
+- Template layout: text 1.5× scale (title 78/90/102 px, chips/subtitle 39 px); card horizontal padding 150 px; content max-width 900 px.
 
 ---
 
@@ -647,7 +648,7 @@ Paths relative to `data/`. No JS changes needed to add a trip — just add file 
 8. **Service worker** — `sw.js` must be updated when new asset paths are added.
 9. **SVG icon design rule** — all icons must use pure vector shapes (no `<text>` or emoji characters). SVG text with emoji fails when loaded as marker `url` in Google Maps (no font access in image context).
 10. **`NearbyPlacesRenderer` icon fallback** uses `assets/icons/viewpoint.svg` for unknown category IDs.
-11. **OG previews in Telegram/Teams/Discord** — crawlers don't execute JS, so `OgMetaManager` updates are invisible to them. The fix is per-trip static HTML snapshots at `trip/<tripId>/index.html`. The app uses **path-based URLs** (`…/trip/<tripId>/`) so that the address bar URL users copy is directly the snapshot URL. The snapshot redirects real users to `/?trip=<tripId>`; on load the app detects the query param and replaces the URL back to the canonical path form. Run `npm run generate-og` whenever new trips are added. **IMPORTANT:** `og:url` in every snapshot must be the snapshot's own canonical path (`${baseUrl}/trip/${tripId}/`), NOT the SPA query-param URL (`/?trip=<id>`). Telegram/WhatsApp re-fetch `og:url` to verify OG tags — if it points to the SPA root they see generic defaults instead of the trip preview. Microsoft Teams is more permissive, which is why Teams worked while Telegram/WhatsApp did not before this was fixed.
+11. **OG previews in Telegram/Teams/Discord** — crawlers don't execute JS, so `OgMetaManager` updates are invisible to them. The fix is per-trip static HTML snapshots at `trip/<tripId>/index.html`. The app uses **path-based URLs** (`…/trip/<tripId>/`) so that the address bar URL users copy is directly the snapshot URL. The snapshot redirects real users via a JS-only `window.location.replace()` to `/?trip=<tripId>`; on load the app detects the query param and replaces the URL back to the canonical path form. Run `npm run generate-og` whenever new trips are added. **IMPORTANT:** `og:url` in every snapshot must be the snapshot's own canonical path (`${baseUrl}/trip/${tripId}/`), NOT the SPA query-param URL (`/?trip=<id>`). Telegram/WhatsApp re-fetch `og:url` to verify OG tags — if it points to the SPA root they see generic defaults instead of the trip preview. **Also: `<meta http-equiv="refresh">` must NOT be used in snapshots** — Telegram's crawler follows instant (delay=0) meta-refresh redirects and would end up at the SPA root, seeing only generic OG tags. The JS `window.location.replace()` redirect is sufficient for all real browsers.
 
 ---
 

@@ -556,8 +556,11 @@ raw `index.html` which only has the generic default tags — resulting in `defau
 instead of the trip-specific image and title. Microsoft Teams is more permissive and trusts the tags
 from the page it crawled, which is why it worked while Telegram/WhatsApp did not.
 Fix: `og:url` in every `trip/<id>/index.html` snapshot is set to `${baseUrl}/trip/${tripId}/`
-(the snapshot URL itself). The redirect target for real users remains `/?trip=<id>` in the
-`<meta http-equiv="refresh">` and the inline `<script>`.
+(the snapshot URL itself). The redirect target for real users is the inline `<script>` only
+(`window.location.replace("/?trip=<id>")`). `<meta http-equiv="refresh">` is intentionally
+absent from the snapshots — Telegram's crawler follows instant (delay=0) meta-refresh redirects,
+which would land it on the SPA root and cause it to read the generic default OG tags instead of
+the trip-specific ones. The JS-only redirect is sufficient for all real browsers.
 
 ### Generating OG images
 
@@ -591,6 +594,12 @@ the correct approach for a no-backend static site.
 
 The OG images use `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` — the same stack
 as `style.css` — rendered by the system font inside the headless Chromium instance that Puppeteer uses.
+
+**Sizing (1.5× scale):** all text in the OG template is 1.5× the original size (title 78/90/102 px by
+title length, subtitle and chip values 39 px, tag and chip labels 19.5 px, branding 27 px). The card's
+horizontal padding is 150 px on both sides (`.card` padding and `.branding { right: 150px }`), so the text
+column is max 900 px wide (`h1` / `.subtitle` `max-width: 900px`). Re-run `npm run generate-og` after
+changing any of these.
 
 ---
 
