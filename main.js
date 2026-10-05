@@ -236,7 +236,7 @@ class App {
 
     // Apply persisted settings now that the map layers exist
     const settings = this.#sidebar.querySelector('app-settings');
-    const { showRouteDirections = true, showTerrain = true, darkMap = false } =
+    const { showRouteDirections = true, showTerrain = true, darkMap = true } =
       settings?.values ?? {};
 
     if (!showRouteDirections) this.#map.setRouteDirections(false);
