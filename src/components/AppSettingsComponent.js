@@ -33,7 +33,7 @@ export class AppSettingsComponent extends HTMLElement {
   #settings = this.#loadSettings();
 
   #loadSettings() {
-    const defaults = { showRouteDirections: true, showTerrain: true, darkMap: false };
+    const defaults = { showRouteDirections: true, showTerrain: true, darkMap: true };
     try {
       const stored = localStorage.getItem(AppSettingsComponent.#STORAGE_KEY);
       if (stored) return { ...defaults, ...JSON.parse(stored) };
