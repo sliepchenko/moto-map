@@ -1,0 +1,71 @@
+{
+  "id": "trip_04-10-26",
+  "title": "Ride to Velika Planina",
+  "date": "2026-10-04",
+  "waypoints": [
+    {
+      "lat": 45.8127474,
+      "lng": 15.9616607,
+      "isVisible": false,
+      "label": "Start"
+    },
+    {
+      "lat": 46.01443829999999,
+      "lng": 15.2878605,
+      "isVisible": true,
+      "label": "Boštanj, petrol station"
+    },
+    {
+      "lat": 46.18829330000001,
+      "lng": 14.6097349,
+      "isVisible": true,
+      "label": "Arboretum"
+    },
+    {
+      "lat": 46.208541937430105,
+      "lng": 14.59857702255249,
+      "isVisible": false,
+      "label": "HIDE"
+    },
+    {
+      "lat": 46.216867279328454,
+      "lng": 14.602909917358318,
+      "isVisible": false,
+      "label": "HIDE"
+    },
+    {
+      "lat": 46.2221964,
+      "lng": 14.6072968,
+      "isVisible": true,
+      "label": "Kamnik, Old Town"
+    },
+    {
+      "lat": 46.3059026,
+      "lng": 14.6095379,
+      "isVisible": true,
+      "label": "Velika Planina, cable car"
+    },
+    {
+      "lat": 46.3070596,
+      "lng": 14.6560815,
+      "isVisible": true,
+      "label": "Mačkin kot, parking"
+    },
+    {
+      "lat": 46.3155013,
+      "lng": 15.0210779,
+      "isVisible": true,
+      "label": "Letuš, petrol station"
+    },
+    {
+      "lat": 45.8127474,
+      "lng": 15.9616607,
+      "isVisible": false,
+      "label": "End"
+    }
+  ],
+  "avoidHighways": true,
+  "avoidTolls": true,
+  "avoidFerries": true,
+  "roadDistanceKm": 352.482
+}
