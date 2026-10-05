@@ -81,6 +81,7 @@ export class AppSidebarComponent extends HTMLElement {
         <button class="accordion-header">
           <span>My Rides</span>
           ${AppSidebarComponent.#arrowSvg()}
+          <span class="rides-summary" hidden></span>
         </button>
         <div class="accordion-body">
           <trip-list></trip-list>
@@ -107,6 +108,32 @@ export class AppSidebarComponent extends HTMLElement {
     this.#routePlanner = this.querySelector('route-planner');
     this.#settings     = this.querySelector('app-settings');
     this.#nearbyPlaces = this.querySelector('nearby-places');
+
+    this.addEventListener('rides-summary-change', e => this.#renderRidesSummary(e.detail));
+  }
+
+  /**
+   * Renders the single-row totals (hours, km, litres of E10, cups of coffee)
+   * inside the "My Rides" accordion button.
+   *
+   * @param {{count:number, hours:number, km:number, liters:number, coffees:number}} s
+   */
+  #renderRidesSummary(s) {
+    const el = this.querySelector('.rides-summary');
+    if (!el) return;
+    if (!s.count) { el.hidden = true; return; }
+
+    const stat = (icon, value, unit) =>
+      `<span class="rides-summary-stat">${icon} <b>${value}</b>${unit ? ' ' + unit : ''}</span>`;
+
+    el.innerHTML =
+      stat('⏱️', s.hours.toFixed(1), 'h') +
+      stat('🛣️', Math.round(s.km).toLocaleString('en-GB'), 'km') +
+      stat('⛽', s.liters.toFixed(1), 'L') +
+      stat('☕', s.coffees, 'cups');
+    el.title = `${s.count} rides · ${s.hours.toFixed(1)} h · ${Math.round(s.km)} km · `
+             + `${s.liters.toFixed(1)} L (4 L/100 km) · ${s.coffees} cups`;
+    el.hidden = false;
   }
 
   #bindAccordion() {

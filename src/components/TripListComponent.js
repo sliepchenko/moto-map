@@ -1,4 +1,12 @@
-import { estimateTripDistance, estimateTripDuration } from '../core/GeoUtils.js';
+import {
+  estimateTripDistance,
+  estimateTripDuration,
+  estimateTripDurationHours,
+  countTripStops,
+} from '../core/GeoUtils.js';
+
+/** Assumed E10 petrol consumption used for the rides summary (litres per 100 km). */
+const FUEL_L_PER_100KM = 4;
 
 /**
  * Builds a Google Maps Directions URL for the given trip waypoints.
@@ -37,6 +45,9 @@ function buildGoogleMapsUrl(waypoints) {
  * Dispatches:
  *  - `trip-select` — CustomEvent with `detail: { id: string | null }`
  *    when the user clicks a trip item (null when deselecting the active one).
+ *  - `rides-summary-change` — CustomEvent with
+ *    `detail: { count, hours, km, liters, coffees }` (totals over all trips)
+ *    after every render and whenever a road distance resolves.
  *
  * SOLID notes:
  *  - SRP: only handles the DOM representation and user interaction for trips.
@@ -93,6 +104,8 @@ export class TripListComponent extends HTMLElement {
     const trip = this.#trips.find(t => t.id === tripId);
     if (trip) trip._roadDistanceKm = km;
 
+    this.#emitSummary();
+
     const li = this.querySelector(`.trip-item[data-trip-id="${tripId}"]`);
     if (!li) return;
 
@@ -114,6 +127,32 @@ export class TripListComponent extends HTMLElement {
   }
 
 
+  /**
+   * Computes totals over all trips and announces them via `rides-summary-change`
+   * so the sidebar can show them on the "My Rides" accordion button.
+   * Called after every render and whenever a road distance resolves.
+   */
+  #emitSummary() {
+    const totals = this.#trips.reduce((acc, trip) => {
+      acc.km      += estimateTripDistance(trip);
+      acc.hours   += estimateTripDurationHours(trip);
+      acc.coffees += countTripStops(trip);
+      return acc;
+    }, { km: 0, hours: 0, coffees: 0 });
+
+    this.dispatchEvent(new CustomEvent('rides-summary-change', {
+      bubbles:  true,
+      composed: true,
+      detail: {
+        count:   this.#trips.length,
+        hours:   totals.hours,
+        km:      totals.km,
+        liters:  totals.km * FUEL_L_PER_100KM / 100,
+        coffees: totals.coffees,
+      },
+    }));
+  }
+
   #render() {
     this.innerHTML = '';
 
@@ -130,6 +169,8 @@ export class TripListComponent extends HTMLElement {
 
     // Restore active state after re-render
     if (this.#activeId) this.setActive(this.#activeId);
+
+    this.#emitSummary();
   }
 
   /** @param {Object} trip */

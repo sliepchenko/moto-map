@@ -472,6 +472,22 @@ Same `PlacesService` approach, specifically for `gas_station` type. Automaticall
 
 ---
 
+## Rides Summary (on the "My Rides" button)
+
+`TripListComponent` computes totals over all trips and emits `rides-summary-change { count, hours, km, liters, coffees }`.
+`AppSidebarComponent.#renderRidesSummary()` renders them as a small-font (10px) **single row** of 4 stats (`.rides-summary`, `display:flex; flex-wrap:nowrap; justify-content:space-between`) inside the "My Rides" `.accordion-header` button (header uses `flex-wrap: wrap`; the row is `flex: 0 0 100%` so it sits under the title). The coffee stat shows only the icon and count (no "cups" unit) to fit the 260px sidebar. Hidden while there are no trips; full text in the element's `title` tooltip.
+
+| Stat | Formula |
+|---|---|
+| Hours | sum of `estimateTripDistance(trip) / 50 km/h` (`estimateTripDurationHours`) |
+| Kilometers | sum of `estimateTripDistance(trip)` (road distance when available) |
+| Litres of E10 | `km * 4 / 100` (`FUEL_L_PER_100KM = 4` in `TripListComponent.js`) |
+| Cups of coffee | `countTripStops(trip)` — waypoints with `isVisible: true`, **excluding first and last** (start/end are not stops) |
+
+The summary is re-emitted by `updateTripDistance()` as `TripRenderer` resolves accurate road distances, so totals start from haversine/`roadDistanceKm` and converge. Hours are an estimate, not real recorded time. The button text is uppercase/letter-spaced by `.accordion-header`, so `.rides-summary` resets `text-transform`/`letter-spacing`.
+
+---
+
 ## Settings System
 
 `AppSettingsComponent` persists its values to `localStorage`. On map load, `App` reads the current values and applies them:
@@ -605,6 +621,8 @@ title length, subtitle and chip values 39 px, tag and chip labels 19.5 px, brand
 horizontal padding is 150 px on both sides (`.card` padding and `.branding { right: 150px }`), so the text
 column is max 900 px wide (`h1` / `.subtitle` `max-width: 900px`). Re-run `npm run generate-og` after
 changing any of these.
+
+**Layout:** the "Moto Map · Ride" tag and the ride title are grouped in a header block at the top of the card (flex column, `justify-content: space-between`), while the stat chips (or site-default subtitle) are pinned to the bottom. Chip order is Date → Distance → Est. time.
 
 ---
 

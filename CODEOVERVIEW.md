@@ -31,7 +31,7 @@ package.json                                 — devDependencies: puppeteer; scr
 src/core/
   EventEmitter.js                   60 lines — pub/sub base class
   ColorUtils.js                     48 lines — trip color palette
-  GeoUtils.js                       83 lines — haversine, distance, duration
+  GeoUtils.js                      ~106 lines — haversine, distance, duration, stop count
 
 src/data/
   TripRepository.js                 49 lines — fetches trips manifest + files
@@ -338,6 +338,8 @@ assignTripColors(trips: Object[])       // mutates trips; adds trip._color
 haversineKm(a, b) → number             // a,b = { lat, lng }
 estimateTripDistance(trip) → number    // priority: _roadDistanceKm → roadDistanceKm → haversine
 estimateTripDuration(trip, avgSpeedKph = 50) → string   // "1 h 23 min" | "45 min" | "1 h"
+estimateTripDurationHours(trip, avgSpeedKph = 50) → number   // numeric hours
+countTripStops(trip) → number          // waypoints with isVisible:true, excluding first & last
 ```
 
 ---
@@ -382,6 +384,7 @@ reset()                                                      // restores site-le
 - Run: `npm run generate-og` (requires `npm install --save-dev puppeteer` once).
 - Re-run whenever a new trip JSON is added.
 - Template layout: text 1.5× scale (title 78/90/102 px, chips/subtitle 39 px); card horizontal padding 150 px; content max-width 900 px.
+- Layout: "Moto Map · Ride" tag + ride title form a header block at the top; chips (or default subtitle) pinned to the bottom (card is flex column, space-between). Chip order: Date → Distance → Est. time.
 
 ---
 
@@ -421,6 +424,7 @@ get nearbyPlaces() → NearbyPlacesPanel
 - Accordion state persisted to `localStorage` key `'moto-map:accordion'`; default open `'rides'`
 - Always emits `section-change` on page load (initial state restore)
 - Clicking open section → collapses (null state); clicking closed section → opens
+- "My Rides" header button contains a `.rides-summary` span (single flex row, 10px font: h / km / L E10 / coffees count), filled on `rides-summary-change` from `<trip-list>` via private `#renderRidesSummary(s)`; hidden when there are no trips
 - `<app-settings>` lives in `sidebar-bottom` (not inside accordion body)
 - `<nearby-places>` lives inside the "Plan Route" accordion body
 
@@ -435,10 +439,14 @@ Custom element `<trip-list>`.
 ```js
 setTrips(trips: Object[])             // stores + re-renders; displays newest-first
 setActive(id: string|null)            // toggles .active + .open on items
-updateTripDistance(tripId, km)        // patches badge without full re-render
+updateTripDistance(tripId, km)        // patches badge without full re-render; also refreshes summary card
 ```
 
-**Emits:** `trip-select` — `{ id: string|null }` (null = deselect)
+- Computes totals of hours (`distance / 50 km/h`), km, litres E10 (`FUEL_L_PER_100KM = 4`), coffees (`countTripStops`) in private `#emitSummary()` and emits them; no summary DOM of its own. `AppSidebarComponent.#renderRidesSummary()` renders them in the "My Rides" button.
+
+**Emits:**
+- `trip-select` — `{ id: string|null }` (null = deselect)
+- `rides-summary-change` — `{ count, hours, km, liters, coffees }` — after every render and every `updateTripDistance()`
 
 - Date format: `en-GB` locale `{ day:'numeric', month:'short', year:'numeric' }`
 - Module-level `buildGoogleMapsUrl(waypoints)` builds Google Maps Directions URL

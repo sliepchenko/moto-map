@@ -117,6 +117,45 @@ html, body {
   width: 100%;
 }
 
+/* ── My Rides summary (inside the accordion button, single row) ────────────── */
+
+.accordion-header {
+  flex-wrap: wrap;
+}
+
+.rides-summary {
+  flex: 0 0 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #9ca3af;
+  text-align: left;
+}
+
+.rides-summary[hidden] {
+  display: none;
+}
+
+.rides-summary-stat {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rides-summary-stat b {
+  color: #22c55e;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .trip-item {
   display: flex;
   flex-direction: column;

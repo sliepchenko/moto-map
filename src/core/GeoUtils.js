@@ -81,3 +81,28 @@ export function estimateTripDuration(trip, avgSpeedKph = 50) {
   if (min === 0) return `${h} h`;
   return `${h} h ${min} min`;
 }
+
+/**
+ * Estimates the riding duration of a trip in hours (numeric counterpart of
+ * `estimateTripDuration`), using the same distance source and average speed.
+ *
+ * @param {Object} trip
+ * @param {number} [avgSpeedKph=50]
+ * @returns {number} duration in hours
+ */
+export function estimateTripDurationHours(trip, avgSpeedKph = 50) {
+  return estimateTripDistance(trip) / avgSpeedKph;
+}
+
+/**
+ * Counts the visible stops of a trip. A stop is a waypoint with
+ * `isVisible: true` that is neither the first (start) nor the last (end)
+ * waypoint.
+ *
+ * @param {{ waypoints?: {isVisible?: boolean}[] }} trip
+ * @returns {number}
+ */
+export function countTripStops(trip) {
+  const pts = trip.waypoints ?? [];
+  return pts.filter((wp, i) => wp.isVisible && i !== 0 && i !== pts.length - 1).length;
+}

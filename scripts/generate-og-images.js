@@ -87,8 +87,8 @@ function formatDate(dateStr) {
  *  - Dark background matching the app sidebar (#121814 at full opacity)
  *  - Green accent line at the top (same #22c55e as the app)
  *  - Motorcycle SVG icon (top-right)
- *  - Large trip title
- *  - Three stat chips: distance · est. time · date
+ *  - "Moto Map · Ride" tag + large trip title pinned to the top
+ *  - Three stat chips pinned to the bottom: date · distance · est. time
  *
  * Font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif
  * (identical to the app's font-family in style.css)
@@ -100,16 +100,16 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
   const stats = isSiteDefault ? '' : `
     <div class="chips">
       <div class="chip">
+        <span class="chip-label">Date</span>
+        <span class="chip-value">${dateFmt}</span>
+      </div>
+      <div class="chip">
         <span class="chip-label">Distance</span>
         <span class="chip-value">${distanceFmt}</span>
       </div>
       <div class="chip">
         <span class="chip-label">Est. time</span>
         <span class="chip-value">${durationFmt}</span>
-      </div>
-      <div class="chip">
-        <span class="chip-label">Date</span>
-        <span class="chip-value">${dateFmt}</span>
       </div>
     </div>
   `;
@@ -138,9 +138,9 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     position: relative;
     display: flex;
     flex-direction: column;
-    /* Text/content pinned to the bottom */
-    justify-content: flex-end;
-    padding: 56px 220px;
+    /* Header (tag + title) at the top, stats/subtitle pinned to the bottom */
+    justify-content: space-between;
+    padding: 48px 220px 56px;
     overflow: hidden;
   }
   /* top accent bar — sits above moto image (z-index via stacking context) */
@@ -182,26 +182,24 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
     z-index: 3;
   }
   .tag {
+    margin-bottom: 20px;
     font-size: 19.5px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #22c55e;
-    margin-bottom: 20px;
   }
   h1 {
     font-size: ${titleSize};
     font-weight: 700;
     line-height: 1.1;
     color: #f9fafb;
-    margin-bottom: 36px;
     max-width: 900px;
     word-break: break-word;
   }
   .subtitle {
     font-size: 39px;
     color: #9ca3af;
-    margin-bottom: 36px;
     max-width: 900px;
     line-height: 1.4;
   }
@@ -241,10 +239,14 @@ function buildHtml({ title, distanceFmt, durationFmt, dateFmt, isSiteDefault, mo
   <!-- Layer 2: moto PNG — behind all content -->
   <img class="moto-icon" src="${motoPngUri}" alt="" />
 
-  <!-- Layer 3: main text content — pinned to bottom -->
+  <!-- Layer 3: header (brand tag + ride name) — pinned to top -->
   <div class="content">
     <div class="tag">Moto Map · Ride</div>
     <h1>${safeTitle}</h1>
+  </div>
+
+  <!-- Layer 3: subtitle / stat chips — pinned to bottom -->
+  <div class="content">
     ${subtitle}
     ${stats}
   </div>

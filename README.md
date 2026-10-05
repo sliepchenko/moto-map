@@ -81,6 +81,7 @@ There is no server, no database, and no authentication. The entire application i
 - Semi-transparent dark sidebar with backdrop blur, 260px wide, hidden on load and revealed after data is ready.
 - Two **accordion sections**: "My Rides" (open by default) and "My POI".
 - Accordion toggle: clicking an open section closes it; clicking a closed section opens it and closes all others.
+- The **"My Rides" button** shows a compact one-row **summary** of all recorded rides: riding time (hours, at an assumed 50 km/h average), kilometers, litres of E10 petrol (assumed 4 L / 100 km) and cups of coffee (one per visible intermediate stop). Road distances refresh the numbers as they resolve.
 - Trip list items show the trip title and formatted date. The active trip gets a green left border.
 - Clicking a trip expands an inline details panel showing distance, estimated time, date, and an **"Open in Google Maps"** button that opens the ride as a Directions route in a new tab.
 - POI list items show an emoji icon, title, and truncated description. The active POI is highlighted similarly.
